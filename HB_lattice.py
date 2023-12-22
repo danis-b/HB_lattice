@@ -82,7 +82,7 @@ class HB_lattice():
     
     
     def plot_eigenvalues(self):
-        num_b = 100
+        num_b = 200
         Bz = np.linspace(0, self.Bmax, num_b)
         eigvals = np.zeros((num_b, 2 * self.N))
 
@@ -94,7 +94,7 @@ class HB_lattice():
         ax = fig.add_subplot(111)
 
         for i in range(2 * self.N):
-            ax.plot(Bz, eigvals[:,i], color='Blue', linewidth=0.5)
+            ax.plot(Bz, eigvals[:,i], color='Blue')
 
         # with open("Energies_B.dat", "w") as fp:
         #     for i in range(num_b):
@@ -124,8 +124,8 @@ class HB_lattice():
         
             psiR = phi(x,y) * complex(0,0)
         
-            for num in range(self.N):
-                psiR += psi[num, i] * phi(x - self.a * self.coord[num][0], y - self.a * self.coord[num][1])
+            for num in range(2 * self.N):
+                psiR += psi[num, i] * phi(x - self.a * self.coord[num % self.N][0], y - self.a * self.coord[num % self.N][1])
         
             return psiR
         
@@ -141,7 +141,7 @@ class HB_lattice():
         y = np.copy(x)
         xGrid, yGrid = np.meshgrid(x, y)
 
-        print('Eigenvalues of plotting states (in eV)')
+        print('Eigenvalues of plotting states (in eV):')
         num_plot = np.array(self.num_map, dtype=int)
 
         for i in num_plot:
