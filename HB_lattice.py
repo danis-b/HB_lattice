@@ -90,7 +90,7 @@ class HB_lattice():
         for i in range(num_b):
             eigvals[i], _ = self.calc_eigenvalues(Bz[i])    
 
-        fig = plt.figure(figsize=(5,5))
+        fig = plt.figure(figsize=(5,4))
         ax = fig.add_subplot(111)
 
         for i in range(2 * self.N):
