@@ -5,7 +5,7 @@ $$  \hat{H} = \sum_{ij, \sigma \sigma^{\prime}} t^{ \sigma \sigma^{\prime}}_{ij}
 
 Peierls substitutions via phase factor:
 
-$$ t_{ij} \rightarrow  t_{ij} e^\gamma_{ij}, $$
+$$ t_{ij} \rightarrow  t_{ij} e^{\gamma_{ij}}, $$
 
 $$ \gamma_{ij} = -2 \pi i \frac{e}{h} a^2 \frac{1}{2} (x_i + x_j) (y_i - y_j).$$
 
