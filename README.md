@@ -9,11 +9,11 @@ $$ t_{ij} \rightarrow  t_{ij} e^{\gamma_{ij}}, $$
 
 $$ \gamma_{ij} = -2 \pi i \frac{e}{h} a^2 \frac{1}{2} (x_i + x_j) (y_i - y_j).$$
 
-# Dependencies:
+# Dependencies
 jupyter-notebook, numpy, matplotlib
 
 
-# Examples:
+# Examples
 
 2x2 lattice with nearest neighbor hopping term:
 ![alt text](https://github.com/danis-b/HB_lattice/blob/main/Examples/2x2.png)
