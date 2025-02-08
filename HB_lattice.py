@@ -6,22 +6,7 @@ class HB_lattice():
     def __init__(self, n, t_nn, t_soc, t_nnn, lattice_spacing, g_factor, Bmax, num_map=[0, 1], B_map=0, mapRes=200, smearing=35):
         
         self.n = n
-        self.t_nn = t_nn # nn
-        self.t_nnn = t_nnn # nnn
-        self.t_soc = t_soc # spin-orbit part
-        self.a = lattice_spacing
-        self.g = g_factor 
-        self.Bmax = Bmax
-        self.N = n**2
 
-        self.num_map = num_map
-        self.B_map = B_map
-        self.mapRes = mapRes
-        self.smearing = smearing
-  
-        self.info()
-        self.init_coords()
-        self.plot_eigenvalues()
 
 
     def info(self):
