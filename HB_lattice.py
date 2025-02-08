@@ -32,7 +32,7 @@ class HB_lattice():
         print('nnn hopping =', self.t_nnn, 'eV')
         print('lattice_spacing =', self.a, 'nm')
         print('g-factor =', self.g)
-        print('max value of magnetic field', self.Bmax, 'T')
+        print('max value of magnetic field =', self.Bmax, 'T')
 
 
     def init_coords(self):
@@ -72,7 +72,7 @@ class HB_lattice():
             for j in range(self.N):
                 r = np.linalg.norm(self.coord[i] - self.coord[j])
                 if(r == 1):
-                    Ham_ud[i, j] = self.t_soc
+                    Ham_ud[i, j] = self.t_soc 
     
         Ham = np.block([[Ham_up, Ham_ud], [np.conj(Ham_ud), Ham_dn]])
 
@@ -94,7 +94,7 @@ class HB_lattice():
         ax = fig.add_subplot(111)
 
         for i in range(2 * self.N):
-            ax.plot(Bz, eigvals[:,i], color='Blue')
+            ax.plot(Bz, eigvals[:,i], color='Blue', linewidth=0.8)
 
         # with open("Energies_B.dat", "w") as fp:
         #     for i in range(num_b):
