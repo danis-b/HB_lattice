@@ -118,6 +118,7 @@ class HB_lattice:
     def hamiltonian_interpolate(self, a: float, b: float):
         print(f"Hamiltonian will be constructd using f(ij) = {a} exp(-{b}d_ij])")
         num_sites = self.coords.shape[0]
+        self.ham_matrix = np.zeros((num_sites, num_sites), dtype=complex)
         for i in range(num_sites):
             for j in range(i + 1, num_sites):
                 dist = np.linalg.norm(self.coords[i] - self.coords[j])
