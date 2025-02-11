@@ -124,6 +124,25 @@ class HB_lattice:
                 dist = np.linalg.norm(self.coords[i] - self.coords[j])
                 self.ham_matrix[i, j] = a * np.exp(-b * dist)
                 self.ham_matrix[j, i] = a * np.exp(-b * dist)
+                
+                
+                
+    def add_spinorb(self, t: list):
+        if self.ham_matrix is None:
+            raise ValueError(
+                "No Hamiltonian matrix found. Please create a Hamiltonian first."
+            )
+        
+        num_sites = self.coords.shape[0]
+        for i in range(num_sites):
+            for j in range(i + 1, num_sites):
+                if j - i - 1 < num_elements:
+                    self.ham_matrix[i, j] = t[j - i - 1]
+                    self.ham_matrix[j, i] = np.conj(t[j - i - 1])
+                    
+            
+        
+        
 
     def plot_dos(self, emin: float, emax: float, smear: float):
         if self.ham_matrix is None:
