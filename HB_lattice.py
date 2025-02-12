@@ -8,7 +8,6 @@ class HB_lattice:
     def __init__(self, g_factor=2):
         self.coords = None
         self.bond_len = None
-        self.eigvals = None
         self.g_factor = g_factor
 
     def create_lattice(self, type: str, num_cells: int, bond_len: float):
@@ -162,7 +161,7 @@ class HB_lattice:
                     unique_distances.append(r)
         unique_distances.sort()
 
-        b = 0.242e-3 * b_field #
+        b = -2 * np.pi * 1j * 0.242e-3 * b_field  #   b =  -2π i  B * e/h
 
         # Initialize Hamiltonian blocks for spin-up, spin-down, and SOC.
         H_up = np.zeros((num_sites, num_sites), dtype=complex)
@@ -185,10 +184,7 @@ class HB_lattice:
 
                 # Compute the Peierls phase for the bond.
                 phase = np.exp(
-                    -2
-                    * np.pi
-                    * 1j
-                    * b
+                    b
                     * (
                         (self.coords[i][0] + self.coords[j][0])
                         * (self.coords[i][1] - self.coords[j][1])
@@ -216,13 +212,10 @@ class HB_lattice:
                 H_dn[i, i] += 5.588e-5 * self.g_factor * 0.5 * b_field
 
         H_full = np.block([[H_up, H_soc], [H_soc.conj().T, H_dn]])
-        self.eigvals = np.linalg.eigvalsh(H_full)
 
-    def plot_dos(self, emin: float, emax: float, smear: float):
-        if self.eigvals is None:
-            raise ValueError(
-                "No eigenvalues are found. Please calculate eigenvalues first"
-            )
+        return np.linalg.eigvalsh(H_full)
+
+    def plot_dos(self, energy_range: list, eigvals: list, smear: float):
 
         def dirac_delta(energy, kT):
             if np.abs(energy.real / kT) < 20:
@@ -233,15 +226,12 @@ class HB_lattice:
                 delta = 0
             return delta
 
-        energy_range = np.linspace(emin, emax, 1000)
         dos = np.zeros_like(energy_range)
+        num_energies = len(energy_range)
+        num_eigvals = len(eigvals)
 
-        for i in range(1000):
-            for j in range(len(self.eigvals)):
-                dos[i] += dirac_delta(energy_range[i] - self.eigvals[j], smear)
+        for i in range(num_energies):
+            for j in range(num_eigvals):
+                dos[i] += dirac_delta(energy_range[i] - eigvals[j], smear)
 
-        plt.plot(energy_range, dos)
-        plt.xlabel("Energy")
-        plt.ylabel("Density of States")
-        plt.title("Density of States")
-        plt.show()
+        return dos
