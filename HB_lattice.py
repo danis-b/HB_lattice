@@ -95,7 +95,7 @@ class HB_lattice:
         plt.gca().set_aspect("equal", adjustable="box")
         plt.xlabel("X (A)")
         plt.ylabel("Y (A)")
-        plt.title("Lattice Plot")
+        plt.title("Lattice")
         plt.show()
 
     def hamiltonian_hopping(self, t: list):
@@ -124,25 +124,64 @@ class HB_lattice:
                 dist = np.linalg.norm(self.coords[i] - self.coords[j])
                 self.ham_matrix[i, j] = a * np.exp(-b * dist)
                 self.ham_matrix[j, i] = a * np.exp(-b * dist)
-                
-                
-                
+
     def add_spinorb(self, t: list):
         if self.ham_matrix is None:
             raise ValueError(
                 "No Hamiltonian matrix found. Please create a Hamiltonian first."
             )
-        
+
+        print(f"Hamiltonian will be constructd with hopping: {t}")
+        num_elements = len(t)
+
         num_sites = self.coords.shape[0]
         for i in range(num_sites):
             for j in range(i + 1, num_sites):
                 if j - i - 1 < num_elements:
                     self.ham_matrix[i, j] = t[j - i - 1]
                     self.ham_matrix[j, i] = np.conj(t[j - i - 1])
-                    
-            
-        
-        
+
+    def calc_eigenvalues(self, B):
+        b = 0.242e-3 * B * self.a**2  # unitless  b = B * a^2 * e/h
+
+        Ham_up = np.zeros((self.N, self.N), dtype=complex)
+        Ham_ud = np.zeros((self.N, self.N), dtype=complex)
+        for i in range(self.N):
+            for j in range(self.N):
+                phase = np.exp(
+                    -2
+                    * np.pi
+                    * 1j
+                    * b
+                    * (self.coord[i][0] + self.coord[j][0])
+                    * (self.coord[i][1] - self.coord[j][1])
+                    / 2
+                )
+                r = np.linalg.norm(self.coord[i] - self.coord[j])
+                if r == 1:
+                    Ham_up[i, j] = self.t_nn * phase  ## nn
+                if np.abs(r - 1.41421) < 1e-4:
+                    Ham_up[i, j] = self.t_nnn * phase  # nnn
+
+        Ham_dn = np.copy(Ham_up)
+
+        # Zeeman splitting
+        for i in range(self.N):
+            Ham_up[i, i] += -5.588e-5 * self.g * 0.5 * B
+            Ham_dn[i, i] += 5.588e-5 * self.g * 0.5 * B
+
+        # Non-diagonal components due to nn spin-orbit term t_soc
+        for i in range(self.N):
+            for j in range(self.N):
+                r = np.linalg.norm(self.coord[i] - self.coord[j])
+                if r == 1:
+                    Ham_ud[i, j] = self.t_soc
+
+        Ham = np.block([[Ham_up, Ham_ud], [np.conj(Ham_ud), Ham_dn]])
+
+        evals, evects = np.linalg.eigh(Ham)
+
+        return evals, evects
 
     def plot_dos(self, emin: float, emax: float, smear: float):
         if self.ham_matrix is None:
