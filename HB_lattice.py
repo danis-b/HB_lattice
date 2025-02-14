@@ -35,7 +35,7 @@ class HB_lattice:
             )
 
         print(
-            f"{num_cells}x{num_cells} {type} lattice with {bond_len} bond length was constructed"
+            f"{num_cells}x{num_cells} {type} lattice with {self.coords.shape[0]} sites and {bond_len} nm bond length was constructed"
         )
 
     def _create_triangular_lattice(self, num, bond_len):
