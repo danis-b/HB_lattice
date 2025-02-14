@@ -12,6 +12,29 @@ $$ \gamma_{ij} = \Phi_{ij} / \Phi_0 = \frac{\int B_z dS_{ij}}{h/e} =  -2 \pi i \
 # Dependencies
 jupyter-notebook, numpy, matplotlib, pandas
 
+# Usage
+class HB_lattice contains the following methods: 
+
+* create_lattice(type, num_cells, bond_len) creates the lattice with given properties
+  * type (str): symmetry of lattice (triangular, square, honeycomb)
+  *  num_cells (int): number of cells
+  *  bond_len (float): bond length (in nm)
+* create_custom_lattice(file_path) creates the lattice using file_path csv-file.  File should contain two (x, y) columns (in nm) with sites coordinates.
+* eigenvalues_via_hopping (t, t_so, b_field, add_peierls, add_zeeman) creates hamiltonian via hopping arrays
+  * t (list): array of hoppings for different neighbor distances (in eV).
+  * t_so (list): array of spin–orbit coupling hoppings for different neighbor distances (in eV).
+  * b_field (float): magnetic field value (in Tesla).
+  * add_peierls (bool): If True, include the Peierls phase in the hopping terms.
+  * add_zeeman (bool): If True, add Zeeman splitting on-site.
+* eigenvalues_via_interpolation(a_param, b_param, b_field, add_peierls, add_zeeman) creates hamiltonian via interpolation function
+  * a_param and b_param (float): parameter of interpolation (in eV)  t_ij = a_param * exp ( - r_ij / b_param), r_ij - distance between sites
+* plot_dos(energy_range, eigvals, smear) static method to polt densities of states 
+  * energy_range (list): energy range to calculate dos
+  * eigvals (list): list of calculated eigenvalues
+  * smear (float): numerial smearing
+
+
+
 
 # Examples
 
