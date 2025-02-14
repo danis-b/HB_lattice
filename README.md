@@ -25,7 +25,7 @@ class HB_lattice contains the following methods:
   * t_so (list): array of spin–orbit coupling hoppings for different neighbor distances (in eV).
   * b_field (float): magnetic field value (in Tesla).
   * add_peierls (bool): If True, include the Peierls phase in the hopping terms.
-  * add_zeeman (bool): If True, add Zeeman splitting on-site.
+  * add_zeeman (bool): If True, add Zeeman splitting with given g-factor on-site. 
 * eigenvalues_via_interpolation(a_param, b_param, b_field, add_peierls, add_zeeman) creates hamiltonian via interpolation function
   * a_param and b_param (float): parameter of interpolation (in eV)  t_ij = a_param * exp ( - r_ij / b_param), r_ij - distance between sites
 * plot_dos(energy_range, eigvals, smear) static method to plot densities of states 
