@@ -28,7 +28,7 @@ class HB_lattice contains the following methods:
   * add_zeeman (bool): If True, add Zeeman splitting on-site.
 * eigenvalues_via_interpolation(a_param, b_param, b_field, add_peierls, add_zeeman) creates hamiltonian via interpolation function
   * a_param and b_param (float): parameter of interpolation (in eV)  t_ij = a_param * exp ( - r_ij / b_param), r_ij - distance between sites
-* plot_dos(energy_range, eigvals, smear) static method to polt densities of states 
+* plot_dos(energy_range, eigvals, smear) static method to plot densities of states 
   * energy_range (list): energy range to calculate dos
   * eigvals (list): list of calculated eigenvalues
   * smear (float): numerial smearing
