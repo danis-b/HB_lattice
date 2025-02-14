@@ -7,7 +7,7 @@ Peierls substitutions is taken into account  via phase factor:
 
 $$ t_{ij} \rightarrow  t_{ij} e^{\gamma_{ij}}, $$
 
-$$ \gamma_{ij} = -2 \pi i \frac{e}{h} \frac{1}{2} (x_i + x_j) (y_i - y_j).$$
+$$ \gamma_{ij} = \Phi_{ij} / \Phi_0 = \frac{\int B_z dS_{ij}}{h/e} =  -2 \pi i \frac{e}{h} B_z \frac{1}{2} (x_i + x_j) (y_i - y_j).$$
 
 # Dependencies
 jupyter-notebook, numpy, matplotlib, pandas
@@ -18,7 +18,7 @@ jupyter-notebook, numpy, matplotlib, pandas
 Square, triangular and honeycomb lattices [[1](https://pubs.aip.org/aapt/ajp/article-abstract/72/5/613/1038951/Landau-levels-molecular-orbitals-and-the?redirectedFrom=fulltext)]:
 ![alt text](https://github.com/danis-b/HB_lattice/blob/main/Examples/Results.png)
 
-2x2 lattice square lattice:
+2x2 lattice square lattice with Peierls & Zeeman terms:
 ![alt text](https://github.com/danis-b/HB_lattice/blob/main/Examples/2x2_square.png)
 
 
