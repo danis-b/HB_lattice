@@ -8,30 +8,27 @@ import matplotlib.pylab as plt
 
 class HB_lattice:
 
-    def __init__(self, g_factor=2):
+    def __init__(self):
         self.coords = None
         self.bond_len = None
-        self.g_factor = g_factor
-        self.eigvals = None
-        self.eigvecs = None
 
-    def create_lattice(self, type: str, num_cells: int, bond_len: float):
+    def create_lattice(self, latt_type: str, num_cells: int, bond_len: float):
         """
         Construct a lattice with given geometry:
 
         Parameters:
-        type (str) symmetry of lattice
+        latt_type (str) symmetry of lattice
         num_cells (int) number of cells
         bond_len (float) bond length (in nm)
         """
         self.bond_len = bond_len
-        if type == "triangular":
+        if latt_type == "triangular":
             self.coords = self._create_triangular_lattice(num_cells, bond_len)
-        elif type == "square":
+        elif latt_type == "square":
             self.coords = self._create_square_lattice(num_cells, bond_len)
-        elif type == "honeycomb":
+        elif latt_type == "honeycomb":
             self.coords = self._create_honeycomb_lattice(num_cells, bond_len)
-        elif type == "kagome":
+        elif latt_type == "kagome":
             print("For test only! Need to extend the idea!")
             self.coords = self._create_kagome_lattice(num_cells, bond_len)
         else:
@@ -40,7 +37,7 @@ class HB_lattice:
             )
 
         print(
-            f"{num_cells}x{num_cells} {type} lattice with {self.coords.shape[0]} sites and {bond_len} nm bond length was constructed"
+            f"{num_cells}x{num_cells} {latt_type} lattice with {self.coords.shape[0]} sites and {bond_len} nm bond length"
         )
         self._plot_lattice()  # plot lattice immediately after creation
 
@@ -126,7 +123,7 @@ class HB_lattice:
                     unique_distances.append(r)
         unique_distances.sort()
 
-        print(f"Custom lattice from {file_path} was constructed")
+        print(f"Custom lattice from {file_path}")
         print(f"Mind that coordinates in {file_path} must be in nm!")
         print(f"Number of sites: {num_sites}")
         print(f"3 first neighbor distances are {unique_distances[:4]} nm")
@@ -156,259 +153,320 @@ class HB_lattice:
             bbox_inches="tight",
         )
 
-    def _eigenvalues_via_hopping(
-        self,
-        t: list = [1.0],
-        t_so: list = [0],
-        b_field: float = 0,
-        add_peierls: bool = True,
-        add_zeeman: bool = True,
-    ):
+    def calc_eigenvalues(self, ham_type: str = "hopping", b_field: float = 0, **kwargs):
         """
-        Construct a tb hamiltonian from hopping, spin–orbit, and magnetic field terms.
+        Create the tight-binding Hamiltonian for the lattice using one of two methods.
 
         Parameters:
-        t (list): Array of hopping amplitudes for different neighbor distances (in eV).
-        t_so (list): Array of spin–orbit coupling hoppings for different neighbor distances (in eV).
+        ham_type (str): Which method to use. Accepts "hopping" (default) or "interpolation" .
         b_field (float): Magnetic field (in Tesla).
-        add_peierls (bool): If True, include the Peierls phase in the hopping terms.
-        add_zeeman (bool): If True, add Zeeman splitting on-site.
+        **kwargs: Additional parameters for the chosen routine.
+            For "hopping":
+                t (list): Hopping amplitudes for different neighbor distances (in eV). Default is [1.0].
+                t_so (list): Spin–orbit coupling amplitudes (in eV). Default is [0].
+            For "interpolation":
+                a_param (float): Prefactor for the exponential hopping term (in eV).
+                b_param (float): Length scale for the exponential decay (in nm).
 
-        The magnetic field enters in two ways:
-        1. A Peierls phase is attached to the hopping terms:
-           phase = exp{ -2π i * h/e * b_field * ((x_i+x_j)(y_i-y_j)/2) }.
-        2. Zeeman splitting adds an on–site shift:
-           for spin up:   −5.588e-5 * self.g_factor * 0.5 * b_field,
-           for spin down: +5.588e-5 * self.g_factor * 0.5 * b_field.
+        Returns:
+            (eigvals, eigvecs): Eigenvalues and eigenvectors of the full Hamiltonian.
 
-        The full Hamiltonian is stored in self.eigvals (eigenvalues) and self.ham_matrix.
+        Notes:
+            - This function caches geometry-dependent data in the attributes
+            _bond_data_hopping or _bond_data_interpolation so that when called in a loop
+            (e.g. varying b_field) the expensive computations over bonds are not repeated.
+            - The Peierls phase is computed as:
+              phase = exp{ -2π i * 0.242e-3 * b_field * ((x_i+x_j)(y_i-y_j)/2) }
         """
         if self.coords is None:
-            raise ValueError("No coordinates are found. Please create a lattice first.")
+            raise ValueError("No coordinates found. Please create a lattice first.")
 
         num_sites = self.coords.shape[0]
-        # Check that the maximum number of provided hopping amplitudes does not exceed num_sites.
-        num_hoppings = max(len(t), len(t_so))
-        if num_hoppings > num_sites:
-            raise ValueError(
-                "Input hopping arrays (t or t_so) is longer than the number of sites in the lattice."
-            )
+        tol = 1e-4
+        # b_field enters only through the Peierls phase and Zeeman splitting.
+        phase_prefactor = -2 * np.pi * 1j * 0.242e-3 * b_field
 
-        unique_distances = []
-        tol = 1e-4  # tolerance for comparing distances
-        for i in range(num_sites):
-            for j in range(i + 1, num_sites):
-                r = np.linalg.norm(self.coords[i] - self.coords[j])
-                if r > 0 and not any(
-                    np.isclose(r, d, atol=tol) for d in unique_distances
-                ):
-                    unique_distances.append(r)
-        unique_distances.sort()
-
-        b = -2 * np.pi * 1j * 0.242e-3 * b_field  #   b =  -2π i  B * e/h
-
-        # Initialize Hamiltonian blocks for spin-up, spin-down, and SOC.
+        # Initialize Hamiltonian blocks.
         H_up = np.zeros((num_sites, num_sites), dtype=complex)
         H_dn = np.zeros((num_sites, num_sites), dtype=complex)
         H_soc = np.zeros((num_sites, num_sites), dtype=complex)
 
-        #  Loop over pairs of sites to fill the off-diagonal hopping terms.
-        for i in range(num_sites):
-            for j in range(i + 1, num_sites):
-                r = np.linalg.norm(self.coords[i] - self.coords[j])
+        if ham_type.lower() == "hopping":
+            # Cache geometry-dependent data for the hopping method.
+            if not hasattr(self, "_bond_data_hopping"):
+                unique_distances = []
+                bond_data = []
+                # First, compute all unique nonzero distances.
+                for i in range(num_sites):
+                    for j in range(i + 1, num_sites):
+                        r = np.linalg.norm(self.coords[i] - self.coords[j])
+                        if r > 0 and not any(
+                            np.isclose(r, d, atol=tol) for d in unique_distances
+                        ):
+                            unique_distances.append(r)
+                unique_distances.sort()
+                # Now, for each bond compute its neighbor index and a geometry factor used in the phase.
+                for i in range(num_sites):
+                    for j in range(i + 1, num_sites):
+                        r = np.linalg.norm(self.coords[i] - self.coords[j])
+                        neighbor_index = None
+                        for idx, d in enumerate(unique_distances):
+                            if np.isclose(r, d, atol=tol):
+                                neighbor_index = idx
+                                break
+                        if neighbor_index is not None:
+                            # The geometry-dependent factor inside the exponential.
+                            geom_factor = (
+                                (self.coords[i][0] + self.coords[j][0])
+                                * (self.coords[i][1] - self.coords[j][1])
+                                / 2
+                            )
+                            bond_data.append((i, j, neighbor_index, geom_factor, r))
+                self._bond_data_hopping = (unique_distances, bond_data)
+            else:
+                unique_distances, bond_data = self._bond_data_hopping
 
-                neighbor_index = None
-                for idx, d in enumerate(unique_distances):
-                    if np.isclose(r, d, atol=tol):
-                        neighbor_index = idx
-                        break
-
-                if neighbor_index is None:
-                    continue
-
-                # Compute the Peierls phase for the bond.
-                phase = np.exp(
-                    b
-                    * (
-                        (self.coords[i][0] + self.coords[j][0])
-                        * (self.coords[i][1] - self.coords[j][1])
-                        / 2
-                    )
+            # Retrieve hopping parameters.
+            t = kwargs.get("t", [0.1])
+            t_so = kwargs.get("t_so", [0])
+            num_hoppings = max(len(t), len(t_so))
+            if num_hoppings > num_sites:
+                raise ValueError(
+                    "Input hopping arrays (t or t_so) are longer than the number of sites."
                 )
-                if not add_peierls:
-                    phase = 1.0
 
+            # Loop over precomputed bond_data.
+            for i, j, neighbor_index, geom_factor, r in bond_data:
+                phase = np.exp(phase_prefactor * geom_factor)
+                # Hopping term.
                 if neighbor_index < len(t):
                     H_up[i, j] = t[neighbor_index] * phase
                     H_up[j, i] = np.conjugate(H_up[i, j])
                     H_dn[i, j] = t[neighbor_index] * phase
-                    H_dn[j, i] = np.conj(H_dn[i, j])
-
-                # Add the spin–orbit coupling (SOC) term if provided.
+                    H_dn[j, i] = np.conjugate(H_dn[i, j])
+                # Spin–orbit coupling term.
                 if neighbor_index < len(t_so):
                     H_soc[i, j] = t_so[neighbor_index]
                     H_soc[j, i] = t_so[neighbor_index]
 
-        # Add Zeeman splitting on-site (if enabled).
-        if add_zeeman:
-            for i in range(num_sites):
-                H_up[i, i] += -5.588e-5 * self.g_factor * 0.5 * b_field
-                H_dn[i, i] += 5.588e-5 * self.g_factor * 0.5 * b_field
+        elif ham_type.lower() in ("interpolation"):
+            # Cache geometry-dependent bond data for interpolation.
+            if not hasattr(self, "_bond_data_interpolation"):
+                bond_data = []
+                for i in range(num_sites):
+                    for j in range(i + 1, num_sites):
+                        r = np.linalg.norm(self.coords[i] - self.coords[j])
+                        geom_factor = (
+                            (self.coords[i][0] + self.coords[j][0])
+                            * (self.coords[i][1] - self.coords[j][1])
+                            / 2
+                        )
+                        bond_data.append((i, j, geom_factor, r))
+                self._bond_data_interpolation = bond_data
+            else:
+                bond_data = self._bond_data_interpolation
 
-        H_full = np.block([[H_up, H_soc], [np.conj(H_soc), H_dn]])
+            # Retrieve interpolation parameters.
+            a_param = kwargs.get("a_param")
+            b_param = kwargs.get("b_param")
+            if a_param is None or b_param is None:
+                raise ValueError(
+                    "For 'interpolation', a_param and b_param must be provided."
+                )
 
+            for i, j, geom_factor, r in bond_data:
+                phase = np.exp(phase_prefactor * geom_factor)
+                t_val = a_param * np.exp(-r / b_param)
+                H_up[i, j] = t_val * phase
+                H_up[j, i] = np.conjugate(H_up[i, j])
+                H_dn[i, j] = t_val * phase
+                H_dn[j, i] = np.conjugate(H_dn[i, j])
+            # Note: H_soc remains zero in the interpolation method.
+
+        else:
+            raise ValueError("Invalid ham_type. Must be 'hopping' or 'interpolation'.")
+
+        # Add Zeeman splitting on-site if enabled.
+        zeeman_up = -5.588e-5 * self.g_factor * 0.5 * b_field
+        zeeman_dn = 5.588e-5 * self.g_factor * 0.5 * b_field
+        for i in range(num_sites):
+            H_up[i, i] += zeeman_up
+            H_dn[i, i] += zeeman_dn
+
+        # Assemble full Hamiltonian matrix.
+        H_full = np.block([[H_up, H_soc], [np.conjugate(H_soc), H_dn]])
         return np.linalg.eigh(H_full)
 
-    def _eigenvalues_via_interpolation(
-        self,
-        a_param: float,
-        b_param: float,
-        b_field: float = 0,
-        add_peierls: bool = True,
-        add_zeeman: bool = True,
+    def plot_hofstadter(
+        self, b_max: float, b_steps: int, g_factor: float, ham_type: str, **params
     ):
         """
-        Construct a tb hamiltonian from interpolating function and magnetic field terms.
-        Interpolating function t_ij = a_param * exp ( - r_ij / b_param), r_ij - distance between sites
+        Plot the Hofstadter butterfly
 
         Parameters:
-        a_param (float): parameter of interpolation (in eV).
-        b_param (float): parameter of interpolation (in nm).
-        b_field (float): Magnetic field (in Tesla).
-        add_peierls (bool): If True, include the Peierls phase in the hopping terms.
-        add_zeeman (bool): If True, add Zeeman splitting on-site.
+        b_max (float): Maximum magnetic field (in Tesla).
+        b_steps (int): Number of points in the magnetic field range.
+        g_factor (float): g-factor used for Zeeman splitting.
+        ham_type (str): Which Hamiltonian construction method to use.
+                        Accepts:
+                          - "hopping"  for the hopping-based method.
+                          - "interpolation" (or "custom") for the interpolated method.
+        **params: Additional parameters for the chosen routine.
+                  For "hopping": t, t_so
+                  For "interpolation": a_param, b_param
 
-        The magnetic field enters in two ways:
-        1. A Peierls phase is attached to the hopping terms:
-           phase = exp{ -2π i * h/e * b_field * ((x_i+x_j)(y_i-y_j)/2) }.
-        2. Zeeman splitting adds an on–site shift:
-           for spin up:   −5.588e-5 * self.g_factor * 0.5 * b_field,
-           for spin down: +5.588e-5 * self.g_factor * 0.5 * b_field.
-
-        The full Hamiltonian is stored in self.eigvals (eigenvalues) and self.ham_matrix.
+        The function computes the eigenvalues for each magnetic field value
+        and plots each energy level versus magnetic field.
         """
-        if self.coords is None:
-            raise ValueError("No coordinates are found. Please create a lattice first.")
+        # Initialize storage for eigenvalues and eigenvectors.
+        self.set_eigvals = []
+        self.set_eigvecs = []
+        self.g_factor = g_factor
 
-        num_sites = self.coords.shape[0]
-        b = -2 * np.pi * 1j * 0.242e-3 * b_field  #   b =  -2π i  B * e/h
+        print("Hofstadter plot: using Hamiltonian method:", ham_type)
+        print("Loaded parameters:")
+        for key, value in params.items():
+            print(f"  {key}: {value}")
 
-        # Initialize Hamiltonian blocks for spin-up, spin-down. SOC is not implemented
-        H_up = np.zeros((num_sites, num_sites), dtype=complex)
-        H_dn = np.zeros((num_sites, num_sites), dtype=complex)
-        H_soc = np.zeros((num_sites, num_sites), dtype=complex)
+        # Create an array of magnetic field values.
+        b_values = np.linspace(0, b_max, b_steps)
 
-        #  Loop over pairs of sites to fill the off-diagonal hopping terms.
-        for i in range(num_sites):
-            for j in range(i + 1, num_sites):
-                r = np.linalg.norm(self.coords[i] - self.coords[j])
+        # Loop over magnetic field values.
+        for b in b_values:
+            # Use the unified Hamiltonian builder (with caching) for each b value.
+            w, v = self.calc_eigenvalues(ham_type, b_field=b, **params)
+            self.set_eigvals.append(w)
+            self.set_eigvecs.append(v)
 
-                # Compute the Peierls phase for the bond.
-                phase = np.exp(
-                    b
-                    * (
-                        (self.coords[i][0] + self.coords[j][0])
-                        * (self.coords[i][1] - self.coords[j][1])
-                        / 2
-                    )
-                )
-                if not add_peierls:
-                    phase = 1.0
+        # Convert the list of eigenvalue arrays into a NumPy array.
+        eigenvals_array = np.array(self.set_eigvals)  # shape: (b_steps, num_levels)
 
-                t = a_param * np.exp(-r / b_param)
-                H_up[i, j] = t * phase
-                H_up[j, i] = np.conjugate(H_up[i, j])
-                H_dn[i, j] = t * phase
-                H_dn[j, i] = np.conj(H_dn[i, j])
+        # Plot each energy level versus the magnetic field.
+        fig = plt.figure(figsize=(6, 4))
+        for level in range(eigenvals_array.shape[1]):
+            plt.plot(b_values, eigenvals_array[:, level], color="blue", linewidth=0.5)
 
-        # Add Zeeman splitting on-site (if enabled).
-        if add_zeeman:
-            for i in range(num_sites):
-                H_up[i, i] += -5.588e-5 * self.g_factor * 0.5 * b_field
-                H_dn[i, i] += 5.588e-5 * self.g_factor * 0.5 * b_field
-
-        H_full = np.block([[H_up, H_soc], [np.conj(H_soc), H_dn]])
-
-        return np.linalg.eigh(H_full)
-
-    @staticmethod
-    def plot_dos(energy_range: list, eigvals: list, smear: float = 0.0001):
-        print("DOS plotting settings:")
-        print(f"energy range from {np.min(energy_range)} to {np.max(energy_range)}")
-        print(f"eigenvalues matrix has the shape {eigvals.shape}")
-        print(f"numerical smearing is {smear}")
-
-        def dirac_delta(energy, kT):
-            if np.abs(energy.real / kT) < 20:
-                delta = (np.exp(energy.real / kT) / kT) / (
-                    1 + np.exp(energy.real / kT)
-                ) ** 2
-            else:
-                delta = 0
-            return delta
-
-        dos = np.zeros_like(energy_range)
-        num_energies = len(energy_range)
-        num_eigvals = len(eigvals)
-
-        for i in range(num_energies):
-            for j in range(num_eigvals):
-                dos[i] += dirac_delta(energy_range[i] - eigvals[j], smear)
-
-        return dos
-
-    def plot_map(
-        self, eigvecs_included: list = [0], mapRes: int = 100, smear: float = 0.1
-    ):
-        print("map plotting settings:")
-
-        print("states are included in the map (mind spin degeneracy) =", self.num_map)
-        print("magnetic field value = ", self.B_map, "T")
-        print("map resolution =", self.mapRes)
-        print("smearing of gaussian function =", self.smearing)
-
-        def getPsiR(i, x, y, psi):
-
-            # basis gaussian functions
-            def phi(x, y):
-                return np.exp(-(x**2 + y**2) / self.smearing)
-
-            psiR = phi(x, y) * complex(0, 0)
-
-            for num in range(self.N):
-                psiR += psi[num, i] * phi(
-                    x - self.a * self.coord[num][0], y - self.a * self.coord[num][1]
-                )
-
-            return psiR
-
-        fig = plt.figure(figsize=(5, 5))
-        ax = fig.add_subplot(111)
-        z = np.zeros((mapRes, mapRes))
-
-        x = np.linspace(
-            self.a * 0.5, self.a * (self.coord[self.N - 1][0] + 0.5), self.mapRes
-        )
-        y = np.copy(x)
-        xGrid, yGrid = np.meshgrid(x, y)
-
-        print("Eigenvalues of plotting states (in eV)")
-        num_plot = np.array(self.num_map, dtype=int)
-
-        for i in num_plot:
-            z += np.abs(getPsiR(i, xGrid, yGrid, evecs)) ** 2
-            print(i, evals[i])
-
-        ax.pcolor(x, y, z, cmap="Reds", shading="nearest")
-        ax.axis("off")
-        ax.set_xlabel("R (nm)")
-        ax.set_ylabel("R (nm)")
-        ax.set_aspect("equal", "box")
-
+        plt.xlim(b_values[0], b_values[-1])
+        plt.xlabel("Magnetic field (T)")
+        plt.ylabel("Energy (eV)")
+        plt.title("Eigenvalues vs magnetic field")
         fig.savefig(
-            "Eigenvectors_map.png",
+            "Eigenvalues.png",
             dpi=300,
             facecolor="w",
             transparent=False,
             bbox_inches="tight",
         )
+
+    def plot_dos(
+        self,
+        num_eigvals: list = [0],
+        e_min: float = -5,
+        e_max: float = 5,
+        e_step: int = 1000,
+        smear: float = 0.0001,
+    ):
+        num_plots = len(num_eigvals)
+        if num_plots > len(self.set_eigvals):
+            raise ValueError(
+                "Input array (num_eigvals) is longer the number of b_steps."
+            )
+
+        print(f"DOS for the following eigenvalue set indices: {num_eigvals}")
+        print(f"energy range from {e_min} to {e_max}")
+        print(f"numerical smearing is {smear}")
+
+        def dirac_delta(energy, kT):
+            delta = np.zeros_like(energy)
+            condition = np.abs(energy.real / kT) < 20
+            delta[condition] = (np.exp(energy.real[condition] / kT) / kT) / (
+                1 + np.exp(energy.real[condition] / kT)
+            ) ** 2
+            return delta
+
+        energy_range = np.linspace(e_min, e_max, e_step)
+        num_energies = len(energy_range)
+        num_plots = len(num_eigvals)
+        dos = np.zeros((num_plots, num_energies))
+
+        for plot_index, eigval_index in enumerate(num_eigvals):
+            eigenvalues = self.set_eigvals[eigval_index]
+            for j in range(num_energies):
+                dos[plot_index, j] += np.sum(
+                    dirac_delta(energy_range[j] - eigenvalues, smear)
+                )
+
+        fig = plt.figure(figsize=(6, 4))
+
+        for plot_index in range(num_plots):
+            plt.plot(
+                energy_range,
+                dos[plot_index],
+                linewidth=1,
+                label=f"Eigenval Set {num_eigvals[plot_index]}",
+            )  # Plot each DOS
+
+        plt.xlim(energy_range[0], energy_range[-1])
+        plt.xlabel("Energy (eV)")
+        plt.ylabel("DOS")
+        plt.legend()  #
+        fig.savefig(
+            "DOS.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight"
+        )
+
+    # TO DO
+    # def plot_map(
+    #     self, eigvecs_included: list = [0], mapRes: int = 100, smear: float = 0.1
+    # ):
+    #     print("map plotting settings:")
+
+    #     print("states are included in the map (mind spin degeneracy) =", self.num_map)
+    #     print("magnetic field value = ", self.B_map, "T")
+    #     print("map resolution =", self.mapRes)
+    #     print("smearing of gaussian function =", self.smearing)
+
+    #     def getPsiR(i, x, y, psi):
+
+    #         # basis gaussian functions
+    #         def phi(x, y):
+    #             return np.exp(-(x**2 + y**2) / self.smearing)
+
+    #         psiR = phi(x, y) * complex(0, 0)
+
+    #         for num in range(self.N):
+    #             psiR += psi[num, i] * phi(
+    #                 x - self.a * self.coord[num][0], y - self.a * self.coord[num][1]
+    #             )
+
+    #         return psiR
+
+    #     fig = plt.figure(figsize=(5, 5))
+    #     ax = fig.add_subplot(111)
+    #     z = np.zeros((mapRes, mapRes))
+
+    #     x = np.linspace(
+    #         self.a * 0.5, self.a * (self.coord[self.N - 1][0] + 0.5), self.mapRes
+    #     )
+    #     y = np.copy(x)
+    #     xGrid, yGrid = np.meshgrid(x, y)
+
+    #     print("Eigenvalues of plotting states (in eV)")
+    #     num_plot = np.array(self.num_map, dtype=int)
+
+    #     for i in num_plot:
+    #         z += np.abs(getPsiR(i, xGrid, yGrid, evecs)) ** 2
+    #         print(i, evals[i])
+
+    #     ax.pcolor(x, y, z, cmap="Reds", shading="nearest")
+    #     ax.axis("off")
+    #     ax.set_xlabel("R (nm)")
+    #     ax.set_ylabel("R (nm)")
+    #     ax.set_aspect("equal", "box")
+
+    #     fig.savefig(
+    #         "Eigenvectors_map.png",
+    #         dpi=300,
+    #         facecolor="w",
+    #         transparent=False,
+    #         bbox_inches="tight",
+    #     )
