@@ -1,6 +1,9 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
+
+#  from joblib import Parallel, delayed   # for parallel calculation
 
 
 class HB_lattice:
@@ -9,6 +12,8 @@ class HB_lattice:
         self.coords = None
         self.bond_len = None
         self.g_factor = g_factor
+        self.eigvals = None
+        self.eigvecs = None
 
     def create_lattice(self, type: str, num_cells: int, bond_len: float):
         """
@@ -37,6 +42,7 @@ class HB_lattice:
         print(
             f"{num_cells}x{num_cells} {type} lattice with {self.coords.shape[0]} sites and {bond_len} nm bond length was constructed"
         )
+        self._plot_lattice()  # plot lattice immediately after creation
 
     def _create_triangular_lattice(self, num, bond_len):
         coords = []
@@ -92,10 +98,18 @@ class HB_lattice:
         return np.array(coords)
 
     def create_custom_lattice(self, file_path: str):
-        df = pd.read_csv(file_path)
+        _, ext = os.path.splitext(file_path)
+
+        if ext.lower() == ".csv":
+            df = pd.read_csv(file_path)
+        elif ext.lower() == ".txt" or ext.lower() == ".dat":
+            df = pd.read_csv(file_path, delim_whitespace=True, header=None)
+        else:
+            raise ValueError("Unsupported file format. Please use a .csv or .txt file.")
+
         if df.shape[1] != 2:
             raise ValueError(
-                f"Error: csv file should contain two (x, y) columns (in nm), but found {df.shape[1]}."
+                f"Error: file should contain two (x, y) columns (in nm), but found {df.shape[1]}."
             )
         self.coords = np.array(df.iloc[:, :])
 
@@ -116,8 +130,9 @@ class HB_lattice:
         print(f"Mind that coordinates in {file_path} must be in nm!")
         print(f"Number of sites: {num_sites}")
         print(f"3 first neighbor distances are {unique_distances[:4]} nm")
+        self._plot_lattice()
 
-    def plot_lattice(self):
+    def _plot_lattice(self):
         if self.coords is None:
             raise ValueError(
                 "No lattice coordinates to plot. Please create a lattice first."
@@ -141,7 +156,7 @@ class HB_lattice:
             bbox_inches="tight",
         )
 
-    def eigenvalues_via_hopping(
+    def _eigenvalues_via_hopping(
         self,
         t: list = [1.0],
         t_so: list = [0],
@@ -242,9 +257,9 @@ class HB_lattice:
 
         H_full = np.block([[H_up, H_soc], [np.conj(H_soc), H_dn]])
 
-        return np.linalg.eigvalsh(H_full)
+        return np.linalg.eigh(H_full)
 
-    def eigenvalues_via_interpolation(
+    def _eigenvalues_via_interpolation(
         self,
         a_param: float,
         b_param: float,
@@ -314,10 +329,14 @@ class HB_lattice:
 
         H_full = np.block([[H_up, H_soc], [np.conj(H_soc), H_dn]])
 
-        return np.linalg.eigvalsh(H_full)
+        return np.linalg.eigh(H_full)
 
     @staticmethod
     def plot_dos(energy_range: list, eigvals: list, smear: float = 0.0001):
+        print("DOS plotting settings:")
+        print(f"energy range from {np.min(energy_range)} to {np.max(energy_range)}")
+        print(f"eigenvalues matrix has the shape {eigvals.shape}")
+        print(f"numerical smearing is {smear}")
 
         def dirac_delta(energy, kT):
             if np.abs(energy.real / kT) < 20:
@@ -337,3 +356,59 @@ class HB_lattice:
                 dos[i] += dirac_delta(energy_range[i] - eigvals[j], smear)
 
         return dos
+
+    def plot_map(
+        self, eigvecs_included: list = [0], mapRes: int = 100, smear: float = 0.1
+    ):
+        print("map plotting settings:")
+
+        print("states are included in the map (mind spin degeneracy) =", self.num_map)
+        print("magnetic field value = ", self.B_map, "T")
+        print("map resolution =", self.mapRes)
+        print("smearing of gaussian function =", self.smearing)
+
+        def getPsiR(i, x, y, psi):
+
+            # basis gaussian functions
+            def phi(x, y):
+                return np.exp(-(x**2 + y**2) / self.smearing)
+
+            psiR = phi(x, y) * complex(0, 0)
+
+            for num in range(self.N):
+                psiR += psi[num, i] * phi(
+                    x - self.a * self.coord[num][0], y - self.a * self.coord[num][1]
+                )
+
+            return psiR
+
+        fig = plt.figure(figsize=(5, 5))
+        ax = fig.add_subplot(111)
+        z = np.zeros((mapRes, mapRes))
+
+        x = np.linspace(
+            self.a * 0.5, self.a * (self.coord[self.N - 1][0] + 0.5), self.mapRes
+        )
+        y = np.copy(x)
+        xGrid, yGrid = np.meshgrid(x, y)
+
+        print("Eigenvalues of plotting states (in eV)")
+        num_plot = np.array(self.num_map, dtype=int)
+
+        for i in num_plot:
+            z += np.abs(getPsiR(i, xGrid, yGrid, evecs)) ** 2
+            print(i, evals[i])
+
+        ax.pcolor(x, y, z, cmap="Reds", shading="nearest")
+        ax.axis("off")
+        ax.set_xlabel("R (nm)")
+        ax.set_ylabel("R (nm)")
+        ax.set_aspect("equal", "box")
+
+        fig.savefig(
+            "Eigenvectors_map.png",
+            dpi=300,
+            facecolor="w",
+            transparent=False,
+            bbox_inches="tight",
+        )
