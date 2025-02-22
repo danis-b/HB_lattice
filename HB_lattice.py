@@ -328,7 +328,7 @@ class HB_lattice:
         ham_type (str): Which Hamiltonian construction method to use.
                         Accepts:
                           - "hopping"  for the hopping-based method.
-                          - "interpolation" (or "custom") for the interpolated method.
+                          - "interpolation"  for the interpolated method.
         **params: Additional parameters for the chosen routine.
                   For "hopping": t, t_so
                   For "interpolation": a_param, b_param
