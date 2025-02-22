@@ -8,9 +8,10 @@ import matplotlib.pylab as plt
 
 class HB_lattice:
 
-    def __init__(self):
+    def __init__(self, parallel=False):
         self.coords = None
         self.bond_len = None
+        self.parallel = parallel
 
     def create_lattice(self, latt_type: str, num_cells: int, bond_len: float):
         """
@@ -152,8 +153,26 @@ class HB_lattice:
             transparent=False,
             bbox_inches="tight",
         )
+        
+    # To DO (use sparse)
+    # from scipy.sparse import csr_matrix, csc_matrix
+    # from scipy.sparse.linalg import eigsh
+    # def _eigensolver(self, ham_matrix):
+    #     non_zero = np.count_nonzero(ham_matrix)
+    #     total_elements = ham_matrix.size
+    #     sparsity = non_zero / total_elements
 
-    def calc_eigenvalues(self, ham_type: str = "hopping", b_field: float = 0, **kwargs):
+    #     if sparsity < 0.1:  
+    #         print('use sparse')
+    #         # Convert to CSC for better performance
+    #         H_sparse = csc_matrix(ham_matrix)  
+    #         k = min(ham_matrix.shape[0] - 2, ham_matrix.shape[0] // 2) 
+    #         return eigsh(H_sparse, k=k, which='LA', return_eigenvectors=True)
+    #     else:
+    #         return np.linalg.eigh(ham_matrix)
+        
+
+    def _calc_eigenvalues(self, ham_type: str = "hopping", b_field: float = 0, **kwargs):
         """
         Create the tight-binding Hamiltonian for the lattice using one of two methods.
 
@@ -295,6 +314,7 @@ class HB_lattice:
 
         # Assemble full Hamiltonian matrix.
         H_full = np.block([[H_up, H_soc], [np.conjugate(H_soc), H_dn]])
+        
         return np.linalg.eigh(H_full)
 
     def plot_hofstadter(
@@ -318,6 +338,9 @@ class HB_lattice:
         The function computes the eigenvalues for each magnetic field value
         and plots each energy level versus magnetic field.
         """
+        if self.parallel:
+            from joblib import Parallel, delayed
+
         # Initialize storage for eigenvalues and eigenvectors.
         self.set_eigvals = []
         self.set_eigvecs = []
@@ -332,11 +355,18 @@ class HB_lattice:
         b_values = np.linspace(0, b_max, b_steps)
 
         # Loop over magnetic field values.
-        for b in b_values:
-            # Use the unified Hamiltonian builder (with caching) for each b value.
-            w, v = self.calc_eigenvalues(ham_type, b_field=b, **params)
-            self.set_eigvals.append(w)
-            self.set_eigvecs.append(v)
+        if self.parallel:
+            results = Parallel(n_jobs=-1)(
+                delayed(self._calc_eigenvalues)(ham_type, b_field=b, **params)
+                for b in b_values
+            )
+            self.set_eigvals = [w for (w, v) in results]
+            self.set_eigvecs = [v for (w, v) in results]
+        else:
+            for b in b_values:
+                w, v = self._calc_eigenvalues(ham_type, b_field=b, **params)
+                self.set_eigvals.append(w)
+                self.set_eigvecs.append(v)
 
         # Convert the list of eigenvalue arrays into a NumPy array.
         eigenvals_array = np.array(self.set_eigvals)  # shape: (b_steps, num_levels)
@@ -366,8 +396,11 @@ class HB_lattice:
         e_step: int = 1000,
         smear: float = 0.0001,
     ):
+        if not hasattr(self, "set_eigvals"):
+            raise ValueError("No eigenvalues found. Please run plot_hofstadter first!")
+
         num_plots = len(num_eigvals)
-        if num_plots > len(self.set_eigvals):
+        if max(num_eigvals) >= len(self.set_eigvals):
             raise ValueError(
                 "Input array (num_eigvals) is longer the number of b_steps."
             )
@@ -414,59 +447,88 @@ class HB_lattice:
             "DOS.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight"
         )
 
-    # TO DO
-    # def plot_map(
-    #     self, eigvecs_included: list = [0], mapRes: int = 100, smear: float = 0.1
-    # ):
-    #     print("map plotting settings:")
+    def plot_map(
+        self,
+        num_eigvecs: list = [0],
+        mapRes: int = 100,
+        smear: float = 0.1,
+        b_index: int = 0,
+    ):
+        """
+        Plot a spatial map of the eigenstate probability density.
 
-    #     print("states are included in the map (mind spin degeneracy) =", self.num_map)
-    #     print("magnetic field value = ", self.B_map, "T")
-    #     print("map resolution =", self.mapRes)
-    #     print("smearing of gaussian function =", self.smearing)
+        Parameters:
+            num_eigvecs (list): Indices of eigenstates  to include in the map.
+            mapRes (int): Resolution of the map grid.
+            smear (float): Smearing parameter for the Gaussian function.
+            b_index (int): Index of the eigenvector set (from self.set_eigvecs) to use (default 0)
+        """
+        # Print plotting settings once.
+        print("Map plotting settings:")
+        print("  Eigenstates included:", num_eigvecs)
+        print("  Map resolution =", mapRes)
+        print("  Gaussian smearing =", smear)
+        print("  Using eigenvector set from index:", b_index)
 
-    #     def getPsiR(i, x, y, psi):
+        # Check that eigenvectors are available.
+        if not hasattr(self, "set_eigvecs") or not self.set_eigvecs:
+            raise ValueError("No eigenvectors found. Please run plot_hofstadter first!")
+        try:
+            eigvecs = self.set_eigvecs[b_index]
+        except IndexError:
+            raise ValueError(
+                f"Invalid b_index {b_index}. Available indices: 0 to {len(self.set_eigvecs) - 1}"
+            )
 
-    #         # basis gaussian functions
-    #         def phi(x, y):
-    #             return np.exp(-(x**2 + y**2) / self.smearing)
+        num_sites = self.coords.shape[0]
 
-    #         psiR = phi(x, y) * complex(0, 0)
+        # Determine grid limits from self.coords.
+        x_min, x_max = self.coords[:, 0].min(), self.coords[:, 0].max()
+        y_min, y_max = self.coords[:, 1].min(), self.coords[:, 1].max()
+        margin_x = 0.1 * (x_max - x_min)
+        margin_y = 0.1 * (y_max - y_min)
+        x_min -= margin_x
+        x_max += margin_x
+        y_min -= margin_y
+        y_max += margin_y
 
-    #         for num in range(self.N):
-    #             psiR += psi[num, i] * phi(
-    #                 x - self.a * self.coord[num][0], y - self.a * self.coord[num][1]
-    #             )
+        # Create grid.
+        x = np.linspace(x_min, x_max, mapRes)
+        y = np.linspace(y_min, y_max, mapRes)
+        xGrid, yGrid = np.meshgrid(x, y)
 
-    #         return psiR
+        # For vectorization: reshape grid arrays to (mapRes, mapRes, 1).
+        X = xGrid[..., np.newaxis]
+        Y = yGrid[..., np.newaxis]
+        # Extract site positions (shape: (N,)).
+        site_x = self.coords[:, 0]
+        site_y = self.coords[:, 1]
+        # Compute the Gaussian basis functions for all sites at once.
+        # Resulting phi_grid shape: (mapRes, mapRes, N)
+        phi_grid = np.exp(-(((X - site_x) ** 2 + (Y - site_y) ** 2) / smear))
 
-    #     fig = plt.figure(figsize=(5, 5))
-    #     ax = fig.add_subplot(111)
-    #     z = np.zeros((mapRes, mapRes))
+        # Initialize probability density map.
+        z = np.zeros((mapRes, mapRes))
 
-    #     x = np.linspace(
-    #         self.a * 0.5, self.a * (self.coord[self.N - 1][0] + 0.5), self.mapRes
-    #     )
-    #     y = np.copy(x)
-    #     xGrid, yGrid = np.meshgrid(x, y)
+        for i in num_eigvecs:
+            # For spinful systems, split into spin-up and spin-down parts.
+            c_up = eigvecs[:num_sites, i]
+            c_dn = eigvecs[num_sites:, i]
+            psiR_up = np.sum(phi_grid * c_up, axis=2)
+            psiR_dn = np.sum(phi_grid * c_dn, axis=2)
+            z += np.abs(psiR_up) ** 2 + np.abs(psiR_dn) ** 2
+            print(f"  State {i}: Eigenvalue = {self.set_eigvals[b_index][i]}")
 
-    #     print("Eigenvalues of plotting states (in eV)")
-    #     num_plot = np.array(self.num_map, dtype=int)
-
-    #     for i in num_plot:
-    #         z += np.abs(getPsiR(i, xGrid, yGrid, evecs)) ** 2
-    #         print(i, evals[i])
-
-    #     ax.pcolor(x, y, z, cmap="Reds", shading="nearest")
-    #     ax.axis("off")
-    #     ax.set_xlabel("R (nm)")
-    #     ax.set_ylabel("R (nm)")
-    #     ax.set_aspect("equal", "box")
-
-    #     fig.savefig(
-    #         "Eigenvectors_map.png",
-    #         dpi=300,
-    #         facecolor="w",
-    #         transparent=False,
-    #         bbox_inches="tight",
-    #     )
+        # Plot the probability density map.
+        fig = plt.figure(figsize=(5, 5))
+        plt.pcolor(x, y, z, cmap="Reds", shading="nearest")
+        plt.gca().set_aspect("equal", adjustable="box")
+        plt.xlabel("R (nm)")
+        plt.ylabel("R (nm)")
+        fig.savefig(
+            "Eigenvectors_map.png",
+            dpi=300,
+            facecolor="w",
+            transparent=False,
+            bbox_inches="tight",
+        )
