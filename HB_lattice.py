@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
 
-#  from joblib import Parallel, delayed   # for parallel calculation
-
 
 class HB_lattice:
 
@@ -405,7 +403,7 @@ class HB_lattice:
                 "Input array (num_eigvals) is longer the number of b_steps."
             )
 
-        print(f"DOS for the following eigenvalue set indices: {num_eigvals}")
+        print(f"DOS for eigenvalue sets of magnetic field : {num_eigvals}")
         print(f"energy range from {e_min} to {e_max}")
         print(f"numerical smearing is {smear}")
 
@@ -451,7 +449,7 @@ class HB_lattice:
         self,
         num_eigvecs: list = [0],
         mapRes: int = 100,
-        smear: float = 0.1,
+        smear: float = 10,
         b_index: int = 0,
     ):
         """
@@ -460,7 +458,7 @@ class HB_lattice:
         Parameters:
             num_eigvecs (list): Indices of eigenstates  to include in the map.
             mapRes (int): Resolution of the map grid.
-            smear (float): Smearing parameter for the Gaussian function.
+            smear (float): Smearing parameter for the Gaussian function (default 10 nm).
             b_index (int): Index of the eigenvector set (from self.set_eigvecs) to use (default 0)
         """
         # Print plotting settings once.
@@ -468,7 +466,7 @@ class HB_lattice:
         print("  Eigenstates included:", num_eigvecs)
         print("  Map resolution =", mapRes)
         print("  Gaussian smearing =", smear)
-        print("  Using eigenvector set from index:", b_index)
+        print("  Using eigenvector set from magnetic field index:", b_index)
 
         # Check that eigenvectors are available.
         if not hasattr(self, "set_eigvecs") or not self.set_eigvecs:
