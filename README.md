@@ -41,15 +41,15 @@ class HB_lattice contains the following methods:
 
 # Examples
 
-Square, triangular and honeycomb lattices [[1](https://pubs.aip.org/aapt/ajp/article-abstract/72/5/613/1038951/Landau-levels-molecular-orbitals-and-the?redirectedFrom=fulltext)]:
+* Square, triangular and honeycomb lattices [[1](https://pubs.aip.org/aapt/ajp/article-abstract/72/5/613/1038951/Landau-levels-molecular-orbitals-and-the?redirectedFrom=fulltext)]. Parameters: t = 0.01 eV; num_cells = 1, 15; bond_len = 10 nm;
 
-t = 0.01 eV; num_cells = 1, 15; bond_len = 10 nm;
+
 ![alt text](https://github.com/danis-b/HB_lattice/blob/main/Examples/Results.png)
 
-2x2 lattice square lattice with Peierls & Zeeman terms:
+*  2x2 lattice square lattice with Peierls only (g = 0) Zeeman and Peierls & Zeeman terms:
 ![alt text](https://github.com/danis-b/HB_lattice/blob/main/Examples/2x2_square.png)
 
-t = 0.01 eV; num_cells = 2; bond_len = 10 nm;
+* DOS and charge density analysis for square lattice with num_cells = 2; bond_len = 10 nm; t = 0.01 eV; 
 ![alt text](https://github.com/danis-b/HB_lattice/blob/main/Examples/Results_DOS.png)
 
 
