@@ -28,15 +28,16 @@ class HB_lattice contains the following methods:
   *  t (list): array of hoppings for different neighbor distances (in eV).
   *  t_so (list): array of spin–orbit coupling hoppings for different neighbor distances (in eV).
   *  a_param and b_param (float): parameter of interpolation (in eV)  t_ij = a_param * exp ( - r_ij / b_param), r_ij - distance between sites
-* plot_dos(num_eigvals, e_min, e_max, e_step, smear) plot densities of states 
-  * num_eigvals (list): eigenvalue sets of magnetic field to plot DOS
+* plot_dos(b_value, e_min, e_max, e_step, smear) plot densities of states 
+  * b_value (list): magnetic field value eigenvalue sets to plot DOS
   * e_min (float), e_max (float), e_step (int)  energy range np.linspace(e_min, e_max, e_step) to plot DOS
   * smear (float): numerial smearing
-* plot_map(num_eigvecs, mapRes, smear, b_index) plots a spatial map of the eigenstate probability density.
+* plot_map(b_value, num_eigvecs, mapRes, smear) plots a spatial map of the eigenstate probability density.
+  * b_value (float): Magnetic field value for eigenvector set (default 0)
   * num_eigvecs (list): indices of eigenstates  to include in the map.
   * mapRes (int): resolution of the map grid.
   * smear (float): smearing parameter for the Gaussian function (default 10 nm).
-  * b_index (int): Index of the eigenvector set to use (default 0)
+
 
 
 # Examples
