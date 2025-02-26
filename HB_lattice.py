@@ -350,18 +350,18 @@ class HB_lattice:
             print(f"  {key}: {value}")
 
         # Create an array of magnetic field values.
-        b_values = np.linspace(0, b_max, b_steps)
+        self.b_values = np.linspace(0, b_max, b_steps)
 
         # Loop over magnetic field values.
         if self.parallel:
             results = Parallel(n_jobs=-1)(
                 delayed(self._calc_eigenvalues)(ham_type, b_field=b, **params)
-                for b in b_values
+                for b in self.b_values
             )
             self.set_eigvals = [w for (w, v) in results]
             self.set_eigvecs = [v for (w, v) in results]
         else:
-            for b in b_values:
+            for b in self.b_values:
                 w, v = self._calc_eigenvalues(ham_type, b_field=b, **params)
                 self.set_eigvals.append(w)
                 self.set_eigvecs.append(v)
@@ -372,9 +372,9 @@ class HB_lattice:
         # Plot each energy level versus the magnetic field.
         fig = plt.figure(figsize=(6, 4))
         for level in range(eigenvals_array.shape[1]):
-            plt.plot(b_values, eigenvals_array[:, level], color="blue", linewidth=0.5)
+            plt.plot(self.b_values, eigenvals_array[:, level], color="blue", linewidth=0.5)
 
-        plt.xlim(b_values[0], b_values[-1])
+        plt.xlim(self.b_values[0], self.b_values[-1])
         plt.xlabel("Magnetic field (T)")
         plt.ylabel("Energy (eV)")
         plt.title("Eigenvalues vs magnetic field")
@@ -386,24 +386,42 @@ class HB_lattice:
             bbox_inches="tight",
         )
 
+    def _get_b_indices(self, targets, atol=None, rtol=1e-5):
+        step = self.b_values[1] - self.b_values[0] if len(self.b_values) > 1 else 1
+        if atol is None:
+            atol = step * 0.5  
+        indices = []
+        for t in targets:
+            if t < self.b_values[0] or t > self.b_values[-1]:
+                raise ValueError(f"Target {t} is out of range [{self.b_values[0]}, {self.b_values[-1]}].")
+            idx = int(round(t / step))
+            if not np.isclose(self.b_values[idx], t, rtol=rtol, atol=atol):
+                diff = abs(self.b_values[idx] - t)
+                raise ValueError(
+                    f"No element close enough to {t} (diff: {diff} > atol {atol} with rtol {rtol})."
+                )
+            indices.append(idx)
+        return indices
+
+
     def plot_dos(
         self,
-        num_eigvals: list = [0],
-        e_min: float = -5,
-        e_max: float = 5,
-        e_step: int = 1000,
-        smear: float = 0.0001,
+        b_value: list = [0], # in Tesla
+        e_min: float = -5, # eV
+        e_max: float = 5,  # eV
+        e_step: int = 1000,  
+        smear: float = 0.0001, 
     ):
         if not hasattr(self, "set_eigvals"):
             raise ValueError("No eigenvalues found. Please run plot_hofstadter first!")
 
-        num_plots = len(num_eigvals)
-        if max(num_eigvals) >= len(self.set_eigvals):
+        num_plots = len(b_value)
+        if num_plots >= len(self.set_eigvals):
             raise ValueError(
-                "Input array (num_eigvals) is longer the number of b_steps."
+                "Input array (b_value) is longer the number of b_steps."
             )
 
-        print(f"DOS for eigenvalue sets of magnetic field : {num_eigvals}")
+        print(f"DOS for eigenvalue sets of magnetic field : {b_value}")
         print(f"energy range from {e_min} to {e_max}")
         print(f"numerical smearing is {smear}")
 
@@ -417,10 +435,12 @@ class HB_lattice:
 
         energy_range = np.linspace(e_min, e_max, e_step)
         num_energies = len(energy_range)
-        num_plots = len(num_eigvals)
+        num_plots = len(b_value)
         dos = np.zeros((num_plots, num_energies))
+        # find indices for b_value from self.b_values
+        b_indices = self._get_b_indices(b_value) 
 
-        for plot_index, eigval_index in enumerate(num_eigvals):
+        for plot_index, eigval_index in enumerate(b_indices):
             eigenvalues = self.set_eigvals[eigval_index]
             for j in range(num_energies):
                 dos[plot_index, j] += np.sum(
@@ -434,39 +454,43 @@ class HB_lattice:
                 energy_range,
                 dos[plot_index],
                 linewidth=1,
-                label=f"Eigenval Set {num_eigvals[plot_index]}",
+                label=f"Eigvals for {b_value[plot_index]} T",
             )  # Plot each DOS
 
         plt.xlim(energy_range[0], energy_range[-1])
         plt.xlabel("Energy (eV)")
         plt.ylabel("DOS")
-        plt.legend()  #
+        plt.legend(loc='upper right')  #
         fig.savefig(
             "DOS.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight"
         )
 
     def plot_map(
         self,
+        b_value: float = 0,
         num_eigvecs: list = [0],
         mapRes: int = 100,
         smear: float = 10,
-        b_index: int = 0,
     ):
         """
         Plot a spatial map of the eigenstate probability density.
 
         Parameters:
-            num_eigvecs (list): Indices of eigenstates  to include in the map.
+            b_value (float): Magnetic field value to plot
+            num_eigvecs (list): Indices of eigenstates to include in the map.
             mapRes (int): Resolution of the map grid.
             smear (float): Smearing parameter for the Gaussian function (default 10 nm).
-            b_index (int): Index of the eigenvector set (from self.set_eigvecs) to use (default 0)
         """
         # Print plotting settings once.
         print("Map plotting settings:")
         print("  Eigenstates included:", num_eigvecs)
         print("  Map resolution =", mapRes)
         print("  Gaussian smearing =", smear)
-        print("  Using eigenvector set from magnetic field index:", b_index)
+        print("  Using eigenvector set for magnetif field value:", b_value, "T")
+        
+        # find indices for b_value from self.b_values
+        b_index = self._get_b_indices([b_value])[0] 
+        print(b_index)
 
         # Check that eigenvectors are available.
         if not hasattr(self, "set_eigvecs") or not self.set_eigvecs:
@@ -475,7 +499,7 @@ class HB_lattice:
             eigvecs = self.set_eigvecs[b_index]
         except IndexError:
             raise ValueError(
-                f"Invalid b_index {b_index}. Available indices: 0 to {len(self.set_eigvecs) - 1}"
+                f"Invalid b_value {b_value}. Available values: 0 to {max(self.b_values)}"
             )
 
         num_sites = self.coords.shape[0]
