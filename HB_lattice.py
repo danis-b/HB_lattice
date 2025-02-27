@@ -476,7 +476,7 @@ class HB_lattice:
         Plot a spatial map of the eigenstate probability density.
 
         Parameters:
-            b_value (float): Magnetic field value to plot
+            b_value (float): Magnetic field value for eigenvector set
             num_eigvecs (list): Indices of eigenstates to include in the map.
             mapRes (int): Resolution of the map grid.
             smear (float): Smearing parameter for the Gaussian function (default 10 nm).
