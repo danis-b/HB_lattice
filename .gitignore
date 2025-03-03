@@ -2,6 +2,10 @@ old/
 coords.csv
 *.png
 <<<<<<< HEAD
+=======
+__pycache__
+>>>>>>> web_interface
+<<<<<<< HEAD
 
 =======
 >>>>>>> new_lattices
