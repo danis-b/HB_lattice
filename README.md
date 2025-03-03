@@ -1,5 +1,5 @@
 # Theory
-Hofstadter butterfly for 2D finite lattices $n\times n$ with Zeeman term:
+[Hofstadter's butterfly](https://en.wikipedia.org/wiki/Hofstadter%27s_butterfly) for 2D finite lattices $n\times n$ with Zeeman term:
 
 $$  \hat{H} = \sum_{ij, \sigma \sigma^{\prime}} t^{ \sigma \sigma^{\prime}}_{ij} \hat{a}^{\dagger \sigma }_i \hat{a}^{ \sigma^{\prime}}_j  - \frac{1}{2} g \mu_B B_z \sum \hat{a}^{\dagger \sigma }_i \sigma^z  \hat{a}^{\sigma^{\prime}}_i.  $$
 
