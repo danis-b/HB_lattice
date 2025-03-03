@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 import os
+from io import BytesIO
 
 # Main app layout
-st.title("HB Lattice Simulator")
+st.title("Hofstadter's Butterfly Simulator")
 st.write("Create a lattice, plot the Hofstadter butterfly with DOS, and visualize spatial maps.")
 
 # Initialize session state
@@ -233,23 +234,74 @@ with col1:
     # st.subheader("Lattice")
     if st.session_state.lattice_fig is not None:
         st.pyplot(st.session_state.lattice_fig)
+        # Download button for lattice figure
+        buf = BytesIO()
+        st.session_state.lattice_fig.savefig(buf, format="png", dpi=300)
+        buf.seek(0)
+        st.download_button(
+            label="save plot",
+            data=buf,
+            file_name="lattice_plot.png",
+            mime="image/png"
+        )
 
 # Part 2: Spatial Map (Top Right)
 with col2:
     # st.subheader("Spatial Map")
     if st.session_state.spatial_fig is not None:
         st.pyplot(st.session_state.spatial_fig)
+        # Download button for spatial map figure
+        buf = BytesIO()
+        st.session_state.spatial_fig.savefig(buf, format="png", dpi=300)
+        buf.seek(0)
+        st.download_button(
+            label="save plot",
+            data=buf,
+            file_name="spatial_map.png",
+            mime="image/png"
+        )
 
 # Part 3: Combined Hofstadter + DOS (Bottom)
 with bottom_container:
     # st.subheader("Hofstadter Butterfly with DOS")
     if st.session_state.combined_fig is not None:
         st.pyplot(st.session_state.combined_fig)
+        # Download button for combined figure
+        buf = BytesIO()
+        st.session_state.combined_fig.savefig(buf, format="png", dpi=300)
+        buf.seek(0)
+        st.download_button(
+            label="save plot",
+            data=buf,
+            file_name="hofstadter_dos_plot.png",
+            mime="image/png"
+        )
     elif st.session_state.hofstadter_fig is not None:
         st.pyplot(st.session_state.hofstadter_fig)
+        # Download button for Hofstadter figure
+        buf = BytesIO()
+        st.session_state.hofstadter_fig.savefig(buf, format="png", dpi=300)
+        buf.seek(0)
+        st.download_button(
+            label="save plot",
+            data=buf,
+            file_name="hofstadter_plot.png",
+            mime="image/png"
+        )
 
 # Dynamic instructions
 if not st.session_state.lattice_created:
     st.sidebar.write("Select a lattice type and create it to unlock Hofstadter plotting. For 'lattice from file', upload a file.")
 elif not st.session_state.hofstadter_plotted:
     st.sidebar.write("Plot the Hofstadter to unlock DOS and spatial map plotting.")
+    
+    
+# Add GitHub link at the bottom
+st.markdown(
+    """
+    <div style='text-align: center; position: fixed; bottom: 10px; width: 100%;'>
+        <a href='https://github.com/danis-b/HB_lattice' target='_blank'>View this project on GitHub (danis-b)</a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
