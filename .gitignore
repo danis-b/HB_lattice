@@ -1,6 +1,7 @@
 old/
 coords.csv
 *.png
+__pycache__
 <<<<<<< HEAD
 
 =======
