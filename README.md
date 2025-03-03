@@ -1,3 +1,8 @@
+## 🚀 Deployed App
+
+The app is available on Streamlit: [Click here to access](https://hofstadter.streamlit.app/)
+
+
 # Theory
 [Hofstadter's butterfly](https://en.wikipedia.org/wiki/Hofstadter%27s_butterfly) for 2D finite lattices $n\times n$ with Zeeman term:
 
