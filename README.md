@@ -3,7 +3,7 @@
 The app is available on Streamlit: [Click here to access](https://hofstadter.streamlit.app/)
 
 
-# Theory
+# 📚 Theory
 [Hofstadter's butterfly](https://en.wikipedia.org/wiki/Hofstadter%27s_butterfly) for 2D finite lattices $n\times n$ with Zeeman term:
 
 $$  \hat{H} = \sum_{ij, \sigma \sigma^{\prime}} t^{ \sigma \sigma^{\prime}}_{ij} \hat{a}^{\dagger \sigma }_i \hat{a}^{ \sigma^{\prime}}_j  - \frac{1}{2} g \mu_B B_z \sum \hat{a}^{\dagger \sigma }_i \sigma^z  \hat{a}^{\sigma^{\prime}}_i.  $$
@@ -14,10 +14,10 @@ $$ t_{ij} \rightarrow  t_{ij} e^{\gamma_{ij}}, $$
 
 $$ \gamma_{ij} = \Phi_{ij} / \Phi_0 = \frac{\int B_z dS_{ij}}{h/e} =  -2 \pi i \frac{e}{h} B_z \frac{1}{2} (x_i + x_j) (y_i - y_j).$$
 
-# Dependencies
+# 🔗 Dependencies
 jupyter-notebook, numpy, matplotlib, pandas, (joblib for parallel case)
 
-# Usage
+# ▶️ Usage
 class HB_lattice contains the following methods: 
 
 * create_lattice(type, num_cells, bond_len) creates and plots the lattice with given properties
@@ -45,7 +45,7 @@ class HB_lattice contains the following methods:
 
 
 
-# Examples
+# 📌 Examples
 
 * Square, triangular and honeycomb lattices [[1](https://pubs.aip.org/aapt/ajp/article-abstract/72/5/613/1038951/Landau-levels-molecular-orbitals-and-the?redirectedFrom=fulltext)]. Parameters: t = 0.01 eV; num_cells = 1, 15; bond_len = 10 nm;
 
