@@ -143,7 +143,6 @@ class HB_lattice:
         plt.gca().set_aspect("equal", adjustable="box")
         plt.xlabel("X (nm)")
         plt.ylabel("Y (nm)")
-        plt.title("Lattice")
         fig.savefig(
             "Lattice.png",
             dpi=300,
@@ -476,7 +475,7 @@ class HB_lattice:
         Plot a spatial map of the eigenstate probability density.
 
         Parameters:
-            b_value (float): Magnetic field value to plot
+            b_value (float): Magnetic field value for eigenvector set
             num_eigvecs (list): Indices of eigenstates to include in the map.
             mapRes (int): Resolution of the map grid.
             smear (float): Smearing parameter for the Gaussian function (default 10 nm).
@@ -545,8 +544,8 @@ class HB_lattice:
         fig = plt.figure(figsize=(5, 5))
         plt.pcolor(x, y, z, cmap="Reds", shading="nearest")
         plt.gca().set_aspect("equal", adjustable="box")
-        plt.xlabel("R (nm)")
-        plt.ylabel("R (nm)")
+        plt.xlabel("X (nm)")
+        plt.ylabel("Y (nm)")
         fig.savefig(
             "Eigenvectors_map.png",
             dpi=300,
