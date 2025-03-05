@@ -35,7 +35,7 @@ latt_type = st.sidebar.selectbox("Lattice Type", ["square", "triangular", "honey
 
 # Conditionally show num_cells and bond_len inputs
 if latt_type != "lattice from file":
-    num_cells = st.sidebar.slider("Number of Cells (N)", 1, 10, 1)
+    num_cells = st.sidebar.slider("Number of Cells", 1, 10, 1)
     bond_len = st.sidebar.number_input("Bond Length (nm)", min_value=0.1, value=10.0, step=0.1)
 else:
     num_cells = None
@@ -84,7 +84,7 @@ if st.sidebar.button("Create New Lattice"):
 
 # Hofstadter plot section
 st.sidebar.header("Hofstadter Parameters")
-b_max = st.sidebar.number_input("Max B (T)", min_value=0.1, value=41.3, step=0.1)
+b_max = st.sidebar.number_input("Max Magnetic Field (T)", min_value=0.1, value=41.3, step=0.1)
 b_steps = st.sidebar.slider("Steps", 10, 300, 200)
 g_factor = st.sidebar.number_input("g-factor", value=0.0, step=0.1)
 ham_type = st.sidebar.selectbox("Hamiltonian Type", ["hopping", "interpolation"])
@@ -93,30 +93,31 @@ ham_type = st.sidebar.selectbox("Hamiltonian Type", ["hopping", "interpolation"]
 if ham_type == "hopping":
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        t_input = st.text_input("t (eV)", value="-0.1", help="e.g., -0.1, 0.05")
+        t_input = st.text_input("Hopping array (eV)", value="-0.1", help="e.g., -0.1, 0.05")
     with col2:
-        t_so_input = st.text_input("t_so (eV)", value="0", help="e.g., 0.01, 0.005j")
+        t_so_input = st.text_input("Spin-orbit (eV)", value="0", help="e.g., 0.01, 0.005j")
     try:
         t = [float(x.strip()) for x in t_input.split(',') if x.strip()]
         if not t:
             raise ValueError("No valid values")
     except ValueError as e:
-        st.sidebar.error(f"t error: {e}")
+        st.sidebar.error(f"Hopping array error: {e}")
         t = [-0.1]
     try:
         t_so = [complex(x.strip()) for x in t_so_input.split(',') if x.strip()]
         if not t_so:
             raise ValueError("No valid values")
     except ValueError as e:
-        st.sidebar.error(f"t_so error: {e}")
+        st.sidebar.error(f"Spin-orbit error: {e}")
         t_so = [0.0]
     ham_params = {"t": t, "t_so": t_so}
 elif ham_type == "interpolation":
+    st.sidebar.text("Interpolation: t(r) = a * exp(-r / b)")
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        a_param = st.number_input("a_param (eV)", value=1.0, step=0.1)
+        a_param = st.number_input("a (eV)", value=1.0, step=0.1)
     with col2:
-        b_param = st.number_input("b_param (nm)", value=0.5, step=0.1)
+        b_param = st.number_input("b (nm)", value=0.5, step=0.1)
     ham_params = {"a_param": a_param, "b_param": b_param}
 
 if st.sidebar.button("Plot Hofstadter", disabled=not st.session_state.lattice_created):
@@ -132,18 +133,18 @@ if st.sidebar.button("Plot Hofstadter", disabled=not st.session_state.lattice_cr
 # DOS plot section
 if st.session_state.hofstadter_plotted:
     st.sidebar.header("DOS Parameters")
-    b_value_input = st.sidebar.text_input("B values (T)", value="0, 20.5")
+    b_value_input = st.sidebar.text_input("Magnetic Field (T)", value="0, 20.5", help="e.g., 0, 10")
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        e_step = st.number_input("E Steps", min_value=100, value=1000, step=100)
+        e_step = st.number_input("Energy steps", min_value=100, value=1000, step=100)
     with col2:
-        smear = st.number_input("Smear (eV)", value=0.001, step=0.0001, format="%.4f")
+        smear = st.number_input("Smearing (eV)", value=0.001, step=0.0001, format="%.4f")
     try:
         b_value = [float(x.strip()) for x in b_value_input.split(',') if x.strip()]
         if not b_value:
             raise ValueError("No valid values")
     except ValueError as e:
-        st.sidebar.error(f"B error: {e}")
+        st.sidebar.error(f"Magnetic field values array error: {e}")
         b_value = [0.0]
 
     if st.sidebar.button("Plot DOS"):
@@ -184,16 +185,16 @@ if st.session_state.hofstadter_plotted:
 # Spatial map plot section
 if st.session_state.hofstadter_plotted:
     st.sidebar.header("Spatial Map Parameters")
-    b_value_map = st.sidebar.number_input("B (T)", min_value=0.0, max_value=b_max, value=0.0, step=0.1)
-    num_eigvecs_input = st.sidebar.text_input("Eigvec Indices", value="0,1")
+    b_value_map = st.sidebar.number_input("Magnetic Field (T)", min_value=0.0, max_value=b_max, value=0.0, step=0.1)
+    num_eigvecs_input = st.sidebar.text_input("Eigenvectors Indices", value="0,1")
     mapRes = st.sidebar.slider("Resolution", 50, 200, 100)
-    smear_map = st.sidebar.number_input("Smear (nm)", value=10.0, step=1.0)
+    smear_map = st.sidebar.number_input("Smearing (nm)", value=10.0, step=1.0)
     try:
         num_eigvecs = [int(x.strip()) for x in num_eigvecs_input.split(',') if x.strip()]
         if not num_eigvecs:
             raise ValueError("No valid indices")
     except ValueError as e:
-        st.sidebar.error(f"Indices error: {e}")
+        st.sidebar.error(f"Eigenvectors Indices error: {e}")
         num_eigvecs = [0]
 
     if st.sidebar.button("Plot Spatial Map"):
