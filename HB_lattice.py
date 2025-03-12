@@ -153,7 +153,7 @@ class HB_lattice:
         y_min -= margin_y
         y_max += margin_y
                     
-        fig, ax = plt.subplots(figsize=(5, 5))
+        fig, ax = plt.subplots(figsize=(5, 5), dpi=200)
         ax.set_aspect("equal", adjustable="box")
         ax.scatter(
             self.coords[:, 0], self.coords[:, 1], color="blue", s=400 / num_sites
@@ -577,7 +577,7 @@ class HB_lattice:
             print(f"  State {i}: Eigenvalue = {self.set_eigvals[b_index][i]}")
 
         # Plot the probability density map.
-        fig, ax = plt.subplots(figsize=(5, 5))
+        fig, ax = plt.subplots(figsize=(5, 5), dpi=200)
         ax.set_aspect("equal", adjustable="box")
         ax.pcolormesh(x, y, z, cmap="Reds", shading="nearest")
         ax.set_xlim(x_min, x_max)
