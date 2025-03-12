@@ -38,8 +38,8 @@ class HB_lattice:
 
         print(
             f"{num_cells}x{num_cells} {latt_type} lattice with {self.coords.shape[0]} sites and {bond_len} nm bond length"
-        )
-        self._plot_lattice()  # plot lattice immediately after creation
+            )
+        return self._plot_lattice() 
 
     def _create_triangular_lattice(self, num, bond_len):
         coords = []
@@ -127,13 +127,11 @@ class HB_lattice:
         print(f"Mind that coordinates in {file_path} must be in nm!")
         print(f"Number of sites: {num_sites}")
         print(f"3 first neighbor distances are {unique_distances[:4]} nm")
-        self._plot_lattice()
+        return self._plot_lattice()
 
     def _plot_lattice(self):
         if self.coords is None:
-            raise ValueError(
-                "No lattice coordinates to plot. Please create a lattice first."
-            )
+            raise ValueError("No lattice coordinates to plot. Please create a lattice first.")
 
         num_sites = self.coords.shape[0]
         # Determine grid limits from self.coords.
@@ -141,36 +139,30 @@ class HB_lattice:
         y_min, y_max = self.coords[:, 1].min(), self.coords[:, 1].max()
         margin_x = 0.1 * (x_max - x_min)
         margin_y = 0.1 * (y_max - y_min)
-        
-        if margin_y == 0: # for 1D chain along x
+    
+        if margin_y == 0:  # for 1D chain along x
             margin_y = 3 * margin_x
-            
-        if margin_x == 0: # for 1D chain along y
+        if margin_x == 0:  # for 1D chain along y
             margin_x = 3 * margin_y
-            
+        
         x_min -= margin_x
         x_max += margin_x
         y_min -= margin_y
         y_max += margin_y
                     
-        fig, ax = plt.subplots(figsize=(5, 5), dpi=200)
+        fig = plt.figure(figsize=(5, 5), dpi=200)
+        ax = fig.add_subplot(111)
         ax.set_aspect("equal", adjustable="box")
-        ax.scatter(
-            self.coords[:, 0], self.coords[:, 1], color="blue", s=400 / num_sites
-        )
+        ax.scatter(self.coords[:, 0], self.coords[:, 1], color="blue", s=400 / num_sites)
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
         ax.set_xlabel("X (nm)")
         ax.set_ylabel("Y (nm)")
 
         if self.savefigs:
-            fig.savefig(
-                "Lattice.png",
-                dpi=300,
-                facecolor="w",
-                transparent=False,
-                bbox_inches="tight",
-            )
+            fig.savefig("Lattice.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight")
+    
+        return fig
 
     # To DO (use sparse)
     # from scipy.sparse import csr_matrix, csc_matrix
@@ -402,13 +394,9 @@ class HB_lattice:
         plt.ylabel("Energy (eV)")
         plt.title("Eigenvalues vs magnetic field")
         if self.savefigs:
-            fig.savefig(
-                "Eigenvalues.png",
-                dpi=300,
-                facecolor="w",
-                transparent=False,
-                bbox_inches="tight",
-            )
+            fig.savefig("Eigenvalues.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight")
+        return fig
+    
 
     def _get_b_indices(self, targets, atol=None, rtol=1e-5):
         step = self.b_values[1] - self.b_values[0] if len(self.b_values) > 1 else 1
@@ -485,13 +473,8 @@ class HB_lattice:
         plt.ylabel("DOS")
         plt.legend(loc="upper right")
         if self.savefigs:
-            fig.savefig(
-                "DOS.png",
-                dpi=300,
-                facecolor="w",
-                transparent=False,
-                bbox_inches="tight",
-            )
+            fig.savefig("DOS.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight")
+        return fig
 
     def plot_map(
         self,
@@ -577,7 +560,7 @@ class HB_lattice:
             print(f"  State {i}: Eigenvalue = {self.set_eigvals[b_index][i]}")
 
         # Plot the probability density map.
-        fig, ax = plt.subplots(figsize=(5, 5), dpi=200)
+        fig, ax = plt.subplots(figsize=(5, 5))
         ax.set_aspect("equal", adjustable="box")
         ax.pcolormesh(x, y, z, cmap="Reds", shading="nearest")
         ax.set_xlim(x_min, x_max)
@@ -586,10 +569,5 @@ class HB_lattice:
         ax.set_ylabel("Y (nm)")
 
         if self.savefigs:
-            fig.savefig(
-                "Eigenvectors_map.png",
-                dpi=300,
-                facecolor="w",
-                transparent=False,
-                bbox_inches="tight",
-            )
+            fig.savefig("Eigenvectors_map.png", dpi=300, facecolor="w", transparent=False, bbox_inches="tight")
+        return fig

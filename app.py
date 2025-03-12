@@ -55,7 +55,7 @@ if st.sidebar.button("Create New Lattice"):
     st.session_state.spatial_fig = None
     st.session_state.combined_fig = None
     
-    st.session_state.latt = HB_lattice(parallel=True)  # Always parallel
+    st.session_state.latt = HB_lattice(parallel=True)
     latt = st.session_state.latt
     if latt_type == "lattice from file":
         if uploaded_file is not None:
@@ -63,10 +63,9 @@ if st.sidebar.button("Create New Lattice"):
             with open(temp_file_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
             try:
-                latt.create_custom_lattice(temp_file_path)
+                st.session_state.lattice_fig = latt.create_custom_lattice(temp_file_path)
                 st.session_state.lattice_created = True
                 st.session_state.hofstadter_plotted = False
-                st.session_state.lattice_fig = plt.gcf()
                 st.write(f"Custom lattice created from {uploaded_file.name}.")
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -76,10 +75,9 @@ if st.sidebar.button("Create New Lattice"):
         else:
             st.error("Please upload a file.")
     else:
-        latt.create_lattice(latt_type, num_cells, bond_len)
+        st.session_state.lattice_fig = latt.create_lattice(latt_type, num_cells, bond_len)
         st.session_state.lattice_created = True
         st.session_state.hofstadter_plotted = False
-        st.session_state.lattice_fig = plt.gcf()
         st.write(f"New {latt_type} lattice: {num_cells} cells, {bond_len} nm.")
 
 # Hofstadter plot section
@@ -122,8 +120,7 @@ elif ham_type == "interpolation":
 
 if st.sidebar.button("Plot Hofstadter", disabled=not st.session_state.lattice_created):
     try:
-        latt.plot_hofstadter(b_max, b_steps, g_factor, ham_type, **ham_params)
-        st.session_state.hofstadter_fig = plt.gcf()
+        st.session_state.hofstadter_fig = latt.plot_hofstadter(b_max, b_steps, g_factor, ham_type, **ham_params)
         st.session_state.hofstadter_plotted = True
         st.session_state.combined_fig = None
         st.write(f"Hofstadter: B_max={b_max} T, {b_steps} steps, g={g_factor}.")
@@ -151,8 +148,7 @@ if st.session_state.hofstadter_plotted:
         try:
             e_min = np.min(latt.set_eigvals) + 0.1 * np.min(latt.set_eigvals)
             e_max = np.max(latt.set_eigvals) + 0.1 * np.max(latt.set_eigvals)
-            latt.plot_dos(b_value, e_min, e_max, e_step, smear)
-            dos_fig = plt.gcf()
+            dos_fig = latt.plot_dos(b_value, e_min, e_max, e_step, smear)
             combined_fig = plt.figure(figsize=(10, 5))
             gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
             ax1 = combined_fig.add_subplot(gs[0])
@@ -199,8 +195,7 @@ if st.session_state.hofstadter_plotted:
 
     if st.sidebar.button("Plot Spatial Map"):
         try:
-            latt.plot_map(b_value_map, num_eigvecs, mapRes, smear_map)
-            st.session_state.spatial_fig = plt.gcf()
+            st.session_state.spatial_fig = latt.plot_map(b_value_map, num_eigvecs, mapRes, smear_map)
             st.write(f"Map: B={b_value_map} T, eigvecs {num_eigvecs}.")
         except ValueError as e:
             st.error(f"Map error: {e}")
@@ -211,34 +206,38 @@ bottom_container = st.container()
 
 with col1:
     if st.session_state.lattice_fig is not None:
-        st.pyplot(st.session_state.lattice_fig)
         buf = BytesIO()
         st.session_state.lattice_fig.savefig(buf, format="png", dpi=300)
+        buf.seek(0)
+        st.image(buf, caption="Lattice Plot", use_container_width=True)
         buf.seek(0)
         st.download_button(label="save", data=buf, file_name="lattice_plot.png", mime="image/png")
 
 with col2:
     if st.session_state.spatial_fig is not None:
-        st.pyplot(st.session_state.spatial_fig)
         buf = BytesIO()
         st.session_state.spatial_fig.savefig(buf, format="png", dpi=300)
+        buf.seek(0)
+        st.image(buf, caption="Spatial Map", use_container_width=True)
         buf.seek(0)
         st.download_button(label="save", data=buf, file_name="spatial_map.png", mime="image/png")
 
 with bottom_container:
     if st.session_state.combined_fig is not None:
-        st.pyplot(st.session_state.combined_fig)
         buf = BytesIO()
         st.session_state.combined_fig.savefig(buf, format="png", dpi=300)
         buf.seek(0)
+        st.image(buf, caption="Hofstadter Butterfly with DOS", use_container_width=True)
+        buf.seek(0)
         st.download_button(label="save", data=buf, file_name="hofstadter_dos_plot.png", mime="image/png")
     elif st.session_state.hofstadter_fig is not None:
-        st.pyplot(st.session_state.hofstadter_fig)
         buf = BytesIO()
         st.session_state.hofstadter_fig.savefig(buf, format="png", dpi=300)
         buf.seek(0)
+        st.image(buf, caption="Hofstadter Butterfly", use_container_width=True)
+        buf.seek(0)
         st.download_button(label="save", data=buf, file_name="hofstadter_plot.png", mime="image/png")
-
+        
 # Dynamic instructions
 if not st.session_state.lattice_created:
     st.sidebar.write("Select lattice type and create it.")
