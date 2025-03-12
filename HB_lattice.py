@@ -136,14 +136,33 @@ class HB_lattice:
             )
 
         num_sites = self.coords.shape[0]
+        # Determine grid limits from self.coords.
+        x_min, x_max = self.coords[:, 0].min(), self.coords[:, 0].max()
+        y_min, y_max = self.coords[:, 1].min(), self.coords[:, 1].max()
+        margin_x = 0.1 * (x_max - x_min)
+        margin_y = 0.1 * (y_max - y_min)
+        
+        if margin_y == 0: # for 1D chain along x
+            margin_y = margin_x
+            
+        if margin_x == 0: # for 1D chain along y
+            margin_x = margin_y
+            
+        x_min -= margin_x
+        x_max += margin_x
+        y_min -= margin_y
+        y_max += margin_y
+        
         fig = plt.figure(figsize=(5, 5))
         plt.scatter(
             self.coords[:, 0], self.coords[:, 1], color="blue", s=400 / num_sites
         )
 
-        plt.gca().set_aspect("equal", adjustable="box")
+        plt.gca().set_aspect("equal", adjustable="box") # it looks better
         plt.xlabel("X (nm)")
         plt.ylabel("Y (nm)")
+        plt.xlim(x_min, x_max)
+        plt.ylim(y_min, y_max)
         if self.savefigs:
             fig.savefig(
                 "Lattice.png",
@@ -518,6 +537,13 @@ class HB_lattice:
         y_min, y_max = self.coords[:, 1].min(), self.coords[:, 1].max()
         margin_x = 0.1 * (x_max - x_min)
         margin_y = 0.1 * (y_max - y_min)
+        
+        if margin_y == 0: # for 1D chain along x
+            margin_y = margin_x
+            
+        if margin_x == 0: # for 1D chain along y
+            margin_x = margin_y
+            
         x_min -= margin_x
         x_max += margin_x
         y_min -= margin_y
@@ -552,8 +578,10 @@ class HB_lattice:
 
         # Plot the probability density map.
         fig = plt.figure(figsize=(5, 5))
+        plt.gca().set_aspect("equal", adjustable="box") # it looks better
         plt.pcolor(x, y, z, cmap="Reds", shading="nearest")
-        plt.gca().set_aspect("equal", adjustable="box")
+        plt.xlim(x_min, x_max)
+        plt.ylim(y_min, y_max)
         plt.xlabel("X (nm)")
         plt.ylabel("Y (nm)")
 
