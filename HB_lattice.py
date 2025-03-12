@@ -514,6 +514,13 @@ class HB_lattice:
             )
 
         num_sites = self.coords.shape[0]
+        num_eigenstates = eigvecs.shape[1]  # Total number of eigenvectors (spin-up + spin-down)
+
+        for idx in num_eigvecs:
+            if idx < 0 or idx >= num_eigenstates:
+                raise ValueError(
+                    f"Eigenvector index {idx} is out of bounds. Valid range is 0 to {num_eigenstates - 1}."
+                )
 
         # Determine grid limits from self.coords.
         x_min, x_max = self.coords[:, 0].min(), self.coords[:, 0].max()
