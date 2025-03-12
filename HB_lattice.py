@@ -152,17 +152,17 @@ class HB_lattice:
         x_max += margin_x
         y_min -= margin_y
         y_max += margin_y
-        
-        fig = plt.figure(figsize=(5, 5))
-        plt.scatter(
+                    
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.set_aspect("equal", adjustable="box")
+        ax.scatter(
             self.coords[:, 0], self.coords[:, 1], color="blue", s=400 / num_sites
         )
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.set_xlabel("X (nm)")
+        ax.set_ylabel("Y (nm)")
 
-        plt.gca().set_aspect("equal", adjustable="box") # it looks better
-        plt.xlabel("X (nm)")
-        plt.ylabel("Y (nm)")
-        plt.xlim(x_min, x_max)
-        plt.ylim(y_min, y_max)
         if self.savefigs:
             fig.savefig(
                 "Lattice.png",
