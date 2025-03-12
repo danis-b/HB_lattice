@@ -143,10 +143,10 @@ class HB_lattice:
         margin_y = 0.1 * (y_max - y_min)
         
         if margin_y == 0: # for 1D chain along x
-            margin_y = margin_x
+            margin_y = 3 * margin_x
             
         if margin_x == 0: # for 1D chain along y
-            margin_x = margin_y
+            margin_x = 3 * margin_y
             
         x_min -= margin_x
         x_max += margin_x
@@ -539,10 +539,10 @@ class HB_lattice:
         margin_y = 0.1 * (y_max - y_min)
         
         if margin_y == 0: # for 1D chain along x
-            margin_y = margin_x
+            margin_y = 3 * margin_x
             
         if margin_x == 0: # for 1D chain along y
-            margin_x = margin_y
+            margin_x = 3 * margin_y
             
         x_min -= margin_x
         x_max += margin_x
@@ -577,13 +577,13 @@ class HB_lattice:
             print(f"  State {i}: Eigenvalue = {self.set_eigvals[b_index][i]}")
 
         # Plot the probability density map.
-        fig = plt.figure(figsize=(5, 5))
-        plt.gca().set_aspect("equal", adjustable="box") # it looks better
-        plt.pcolor(x, y, z, cmap="Reds", shading="nearest")
-        plt.xlim(x_min, x_max)
-        plt.ylim(y_min, y_max)
-        plt.xlabel("X (nm)")
-        plt.ylabel("Y (nm)")
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.set_aspect("equal", adjustable="box")
+        ax.pcolormesh(x, y, z, cmap="Reds", shading="nearest")
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.set_xlabel("X (nm)")
+        ax.set_ylabel("Y (nm)")
 
         if self.savefigs:
             fig.savefig(
