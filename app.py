@@ -14,7 +14,7 @@ logging.basicConfig(filename='app.log', level=logging.ERROR,
 
 
 st.title("Hofstadter's Butterfly Simulator")
-st.write("Create a lattice, plot the Hofstadter butterfly with DOS, and visualize spatial maps. For larger simulations, clone the [GitHub project](https://github.com/danis-b/HB_lattice) and run locally.")
+st.write("Create a lattice, plot the Hofstadter butterfly with DOS, and visualize spatial maps.")
 
 # Initialize session state to track lattice and plot statuses
 if 'lattice_created' not in st.session_state:
