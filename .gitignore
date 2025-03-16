@@ -3,4 +3,4 @@ coords.csv
 *.png
 .devcontainer/
 __pycache__
-
+app.log
