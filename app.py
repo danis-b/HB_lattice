@@ -17,14 +17,14 @@ def generate_data_text(latt, b_values, dos_data=None):
     """Generate text content for eigenvalues and optional DOS data."""
     text = "# Eigenvalues\n# B (T)   eigenvalues (eV)\n"
     for b, eigvals in zip(b_values, latt.set_eigvals):
-        eigvals_str = ", ".join(map(str, eigvals))
-        text += f"{b}   {eigvals_str}\n"
+        eigvals_str = ", ".join(map(str, np.round(eigvals, 6)))
+        text += f"{np.round(b, 4)},  {eigvals_str}\n"
     
     if dos_data:
         for b_val, energy, dos in dos_data:
             text += f"\n# DOS for B = {b_val}\n# Energy (eV)   DOS\n"
-            for e, d in zip(energy, dos):
-                text += f"{e}   {d}\n"
+            for e, d in zip(energy, np.round(dos, 6)):
+                text += f"{np.round(e, 4)}   {d}\n"
     
     return text
 

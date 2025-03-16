@@ -4,3 +4,4 @@ coords.csv
 .devcontainer/
 __pycache__
 app.log
+.ipynb_checkpoints/
