@@ -111,6 +111,8 @@ class HB_lattice:
         self.coords = np.array(df.iloc[:, :])
 
         num_sites = self.coords.shape[0]
+        if num_sites > 500:
+            raise ValueError("Number of sites exceeds 500, which may cause performance issues.")
 
         unique_distances = []
         tol = 1e-4  # tolerance for comparing distances
