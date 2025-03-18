@@ -2,6 +2,9 @@
 
 The app is available on Streamlit (activate the app if required): [Click here to access](https://hofstadter.streamlit.app/)
 
+To run locally do the following steps:
+* install libraries via "pip install -r requirements.txt"  or  "conda install --file requirements.txt"
+* streamlit run app.py
 
 # 📚 Theory
 [Hofstadter's butterfly](https://en.wikipedia.org/wiki/Hofstadter%27s_butterfly) for 2D finite lattices $n\times n$ with Zeeman term:
@@ -13,9 +16,6 @@ Peierls substitutions is taken into account  via phase factor:
 $$ t_{ij} \rightarrow  t_{ij} e^{\gamma_{ij}}, $$
 
 $$ \gamma_{ij} = \Phi_{ij} / \Phi_0 = \frac{\int B_z dS_{ij}}{h/e} =  -2 \pi i \frac{e}{h} B_z \frac{1}{2} (x_i + x_j) (y_i - y_j).$$
-
-# 🔗 Dependencies
-jupyter-notebook, numpy, matplotlib, pandas, (joblib for parallel case)
 
 # ▶️ Usage
 class HB_lattice contains the following methods: 
