@@ -1,6 +1,6 @@
 ## 🚀 Deployed App
 
-The app is available on Streamlit: [Click here to access](https://hofstadter.streamlit.app/)
+The app is available on Streamlit (activate the app if required): [Click here to access](https://hofstadter.streamlit.app/)
 
 
 # 📚 Theory
